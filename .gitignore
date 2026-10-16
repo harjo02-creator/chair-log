@@ -1,0 +1,10 @@
+node_modules/
+dist/
+dev-dist/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.DS_Store
+# Never commit real data exports
+chair-log-backup-*.json
+chair-log-*.csv

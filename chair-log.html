@@ -1,0 +1,883 @@
+<title>Chair Log</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Young+Serif&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+/* Layout: a single app shell with two views (Log a visit / Monthly summary) under one sticky header; form left + live ticket right on desktop, stacked on phone. */
+:root {
+  --bg: #f6f5f8;
+  --surface: #ffffff;
+  --sunken: #efedf2;
+  --ink: #1d1a22;
+  --muted: #6a6472;
+  --line: #e2dee7;
+  --accent: #7a3b63;
+  --accent-ink: #ffffff;
+  --accent-soft: #f3e8ef;
+  --good: #1d7346;
+  --good-soft: #e3f2e9;
+  --warn: #9a5a00;
+  --warn-soft: #fbf0dc;
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+  --f-display: "Young Serif", Georgia, "Times New Roman", serif;
+  --f-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  --r: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #141217; --surface: #1d1a21; --sunken: #18161b; --ink: #f0edf3; --muted: #a8a1b0;
+    --line: #322d39; --accent: #d68fbd; --accent-ink: #1d1a22; --accent-soft: #3a2433;
+    --good: #5cc98d; --good-soft: #1a3326; --warn: #e2a64a; --warn-soft: #3a2c14;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #141217; --surface: #1d1a21; --sunken: #18161b; --ink: #f0edf3; --muted: #a8a1b0;
+  --line: #322d39; --accent: #d68fbd; --accent-ink: #1d1a22; --accent-soft: #3a2433;
+  --good: #5cc98d; --good-soft: #1a3326; --warn: #e2a64a; --warn-soft: #3a2c14;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 15px; line-height: 1.5; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 400; margin: 0; text-wrap: balance; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.num, .mono { font-family: var(--f-mono); font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+/* header */
+header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding-block: 12px; }
+.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
+.brand h1 { font-size: 22px; }
+.brand span { font-size: 12px; color: var(--muted); }
+nav.tabs { display: flex; gap: 4px; background: var(--sunken); padding: 4px; border-radius: 999px; }
+nav.tabs a { text-decoration: none; color: var(--muted); font-weight: 600; font-size: 13px; padding: 7px 14px; border-radius: 999px; }
+nav.tabs a[aria-current="page"] { background: var(--surface); color: var(--ink); box-shadow: 0 1px 2px rgba(0,0,0,.08); }
+nav.tabs a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.banner { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--warn-soft); color: var(--ink); border-radius: var(--r); padding: 10px 14px; font-size: 13px; }
+.banner b { color: var(--warn); }
+.banner .spacer { margin-left: auto; display: flex; gap: 8px; align-items: center; }
+
+main { padding-block: 24px 64px; display: grid; gap: 24px; }
+.view[hidden] { display: none; }
+
+/* buttons */
+button { font: inherit; cursor: pointer; }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 8px 14px; font-weight: 600; font-size: 13px; }
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.ghost { background: transparent; }
+.btn.small { padding: 4px 10px; font-size: 12px; }
+.btn.danger { color: var(--warn); }
+
+/* log view */
+.log-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 24px; align-items: start; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px; }
+.form-head { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: baseline; margin-bottom: 18px; }
+.form-head h2 { font-size: 26px; }
+.form-head p { margin: 0; color: var(--muted); font-size: 13px; }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 14px; }
+fieldset + fieldset { margin-top: 22px; padding-top: 22px; border-top: 1px dashed var(--line); }
+legend { padding: 0; margin-bottom: 4px; }
+.row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+.field { display: grid; gap: 6px; min-width: 0; }
+.field > label, .field > .lbl { font-size: 13px; font-weight: 600; }
+.field .hint { font-size: 12px; color: var(--muted); }
+.field .hint.ok { color: var(--good); }
+.field .hint.bad { color: var(--warn); }
+.fnum { font-family: var(--f-mono); font-size: 11px; color: var(--muted); margin-right: 6px; }
+input, select { font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 9px 11px; width: 100%; min-width: 0; }
+input[type="number"] { font-family: var(--f-mono); }
+#f-id { font-family: var(--f-mono); text-transform: uppercase; letter-spacing: .04em; }
+input.invalid { border-color: var(--warn); background: var(--warn-soft); }
+
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.seg label { border: 1px solid var(--line); border-radius: 999px; padding: 6px 13px; font-size: 13px; font-weight: 500; cursor: pointer; user-select: none; background: var(--surface); }
+.seg input:checked + label { background: var(--accent-soft); border-color: var(--accent); color: var(--ink); font-weight: 600; }
+.seg input:focus-visible + label { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.prod-table { display: grid; gap: 8px; }
+.prod-row { display: grid; grid-template-columns: minmax(0, 2fr) minmax(70px, .8fr) minmax(80px, .9fr) minmax(80px, .9fr) 32px; gap: 8px; align-items: center; }
+.prod-row.head { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.prod-row .line { font-family: var(--f-mono); text-align: right; font-size: 14px; }
+.qty-wrap { position: relative; }
+.qty-wrap span { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 12px; color: var(--muted); pointer-events: none; font-family: var(--f-mono); }
+.qty-wrap input { padding-right: 38px; }
+.icon-btn { width: 32px; height: 32px; border-radius: 8px; border: 1px solid transparent; background: transparent; color: var(--muted); font-size: 18px; line-height: 1; }
+.icon-btn:hover { border-color: var(--line); color: var(--warn); }
+
+/* ticket (receipt-like summary) */
+.ticket { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 84px); display: grid; gap: 14px; }
+.ticket .panel { padding: 20px; }
+.ticket h3 { font-size: 18px; }
+.tk-id { font-family: var(--f-mono); font-size: 28px; letter-spacing: .04em; }
+.tk-lines { display: grid; gap: 6px; font-size: 13px; border-top: 1px dashed var(--line); border-bottom: 1px dashed var(--line); padding-block: 12px; }
+.tk-lines div { display: flex; justify-content: space-between; gap: 12px; }
+.tk-lines div span:last-child { font-family: var(--f-mono); }
+.tk-total { display: flex; justify-content: space-between; align-items: baseline; }
+.tk-total b { font-family: var(--f-mono); font-size: 26px; font-weight: 500; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: var(--sunken); color: var(--muted); }
+.chip.good { background: var(--good-soft); color: var(--good); }
+.chip.warn { background: var(--warn-soft); color: var(--warn); }
+.chip.accent { background: var(--accent-soft); color: var(--accent); }
+.privacy { font-size: 12px; color: var(--muted); display: grid; gap: 6px; }
+.privacy ul { margin: 0; padding-left: 18px; }
+.actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 22px; }
+
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 9px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th { font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+td.r, th.r { text-align: right; }
+td.mono { font-family: var(--f-mono); }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; }
+.section-head h2 { font-size: 22px; }
+
+.toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--bg); padding: 10px 18px; border-radius: 999px; font-weight: 600; font-size: 13px; z-index: 50; }
+
+/* summary view */
+.sum-head { display: flex; align-items: end; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.sum-head h2 { font-size: 34px; }
+.sum-head select { width: auto; }
+.pitch { font-family: var(--f-display); font-size: 20px; line-height: 1.45; max-width: 62ch; margin: 0; }
+.pitch em { font-style: normal; color: var(--accent); }
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+.kpi { background: var(--surface); padding: 16px 18px; display: grid; gap: 4px; align-content: start; }
+.kpi .v { font-family: var(--f-mono); font-size: 28px; font-weight: 500; letter-spacing: -.01em; }
+.kpi .sub { font-size: 12px; color: var(--muted); }
+.kpi .chip { justify-self: start; margin-top: 4px; }
+.charts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.chart-card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.chart-card h3 { font-size: 17px; }
+.chart-card p.note { margin: 0; font-size: 12px; color: var(--muted); }
+.chart-box { position: relative; height: 240px; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.chart-card.wide { grid-column: 1 / -1; }
+
+.math { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.formula { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px; display: grid; gap: 10px; min-width: 0; }
+.formula h3 { font-size: 17px; }
+.frac { display: inline-grid; text-align: center; vertical-align: middle; font-family: var(--f-mono); font-size: 13px; }
+.frac span:first-child { border-bottom: 1px solid var(--ink); padding: 0 6px 2px; }
+.frac span:last-child { padding: 2px 6px 0; }
+.eq { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
+.eq .res { font-family: var(--f-mono); font-size: 20px; }
+.formula .bench { font-size: 12px; color: var(--muted); }
+
+@media (max-width: 900px) {
+  .log-grid { grid-template-columns: minmax(0, 1fr); }
+  .ticket { position: static; }
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .charts, .math { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 560px) {
+  .prod-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 32px; }
+  .prod-row.head { display: none; }
+  .prod-row select { grid-column: 1 / -1; }
+  .prod-row .price-in { display: none; }
+  .panel { padding: 16px; }
+  .kpi .v { font-size: 22px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .toast { animation: rise .25s ease-out; }
+  @keyframes rise { from { transform: translate(-50%, 10px); opacity: 0; } }
+}
+</style>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><h1>Chair Log</h1><span>De-identified injector book of business</span></div>
+    <nav class="tabs" aria-label="Pages">
+      <a href="#log" id="tab-log">Log a visit</a>
+      <a href="#summary" id="tab-summary">Monthly summary</a>
+    </nav>
+  </div>
+</header>
+
+<div class="wrap">
+  <main>
+    <div class="banner" id="sample-banner">
+      <span><b>Prototype.</b> Pre-loaded with made-up sample visits for Sep–Oct 2026. Entries you add are saved only in this browser.</span>
+      <span class="spacer" id="clear-zone">
+        <button class="btn small" id="btn-clear">Clear sample data</button>
+      </span>
+    </div>
+
+    <!-- ============ LOG A VISIT ============ -->
+    <section class="view" id="view-log">
+      <div class="log-grid">
+        <form class="panel" id="visit-form" novalidate>
+          <div class="form-head">
+            <h2>Log a visit</h2>
+            <p>Fill in after charting or at end of shift. About 60 seconds.</p>
+          </div>
+
+          <fieldset>
+            <legend class="eyebrow">Who &amp; when</legend>
+            <div class="row">
+              <div class="field">
+                <label for="f-date"><span class="fnum">01</span>Date</label>
+                <input type="date" id="f-date" required>
+              </div>
+              <div class="field">
+                <label for="f-id"><span class="fnum">02</span>Client ID (de-identified)</label>
+                <input id="f-id" placeholder="CH-01" maxlength="6" autocomplete="off" spellcheck="false" list="known-ids">
+                <datalist id="known-ids"></datalist>
+                <span class="hint" id="id-hint">Initials + client number. Never a name, phone or birthday.</span>
+              </div>
+            </div>
+            <div class="field">
+              <span class="lbl"><span class="fnum">03</span>Visit type</span>
+              <div class="seg" role="radiogroup" aria-label="Visit type">
+                <input type="radio" name="vtype" id="vt-new" value="New Consult" checked><label for="vt-new">New consult</label>
+                <input type="radio" name="vtype" id="vt-rep" value="Repeat"><label for="vt-rep">Repeat</label>
+              </div>
+            </div>
+            <div class="field">
+              <span class="lbl"><span class="fnum">04</span>Source / attribution</span>
+              <div class="seg" role="radiogroup" aria-label="Source">
+                <input type="radio" name="source" id="src-clinic" value="Clinic Lead" checked><label for="src-clinic">Clinic lead</label>
+                <input type="radio" name="source" id="src-self" value="Self-Sourced"><label for="src-self">Self-sourced</label>
+                <input type="radio" name="source" id="src-ref" value="Referral"><label for="src-ref">Referral (word of mouth)</label>
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="eyebrow">Treatment</legend>
+            <div class="field">
+              <label for="f-area"><span class="fnum">05</span>Primary treatment area</label>
+              <select id="f-area"></select>
+            </div>
+            <div class="field">
+              <span class="lbl"><span class="fnum">06</span>Product &amp; quantity</span>
+              <div class="prod-table" id="prod-table">
+                <div class="prod-row head"><span>Product</span><span>Qty</span><span>$ / unit</span><span style="text-align:right">Line</span><span></span></div>
+              </div>
+              <div><button type="button" class="btn small ghost" id="btn-add-prod">+ Add product</button></div>
+            </div>
+            <div class="row">
+              <div class="field">
+                <label for="f-retail"><span class="fnum">07</span>Skincare / retail add-on</label>
+                <select id="f-retail"></select>
+              </div>
+              <div class="field">
+                <label for="f-retail-price">Retail price ($)</label>
+                <input type="number" id="f-retail-price" min="0" step="1" placeholder="0">
+              </div>
+            </div>
+          </fieldset>
+
+          <fieldset>
+            <legend class="eyebrow">Retention</legend>
+            <div class="row">
+              <div class="field">
+                <span class="lbl"><span class="fnum">09</span>Rebooked at checkout?</span>
+                <div class="seg" role="radiogroup" aria-label="Rebooked at checkout">
+                  <input type="radio" name="rebook" id="rb-yes" value="Yes" checked><label for="rb-yes">Yes</label>
+                  <input type="radio" name="rebook" id="rb-no" value="No"><label for="rb-no">No</label>
+                </div>
+              </div>
+              <div class="field" id="rebook-when-field">
+                <label for="f-rebook-days">Rebooked for</label>
+                <select id="f-rebook-days">
+                  <option value="14">2 weeks (touch-up)</option>
+                  <option value="42">6 weeks</option>
+                  <option value="90" selected>90 days</option>
+                  <option value="120">4 months</option>
+                  <option value="180">6 months</option>
+                  <option value="365">12 months</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-interval"><span class="fnum">10</span>Treatment interval (days)</label>
+                <input type="number" id="f-interval" min="0" step="1" placeholder="—">
+                <span class="hint" id="interval-hint">Days since this client's last visit. Filled in for you when the ID is already in the log.</span>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="actions">
+            <button type="submit" class="btn primary" id="btn-save">Save visit</button>
+            <button type="button" class="btn ghost" id="btn-reset">Clear form</button>
+          </div>
+        </form>
+
+        <aside class="ticket">
+          <div class="panel">
+            <div class="eyebrow">Live ticket</div>
+            <div class="tk-id" id="tk-id">—</div>
+            <div class="chips" id="tk-chips"></div>
+            <div class="tk-lines" id="tk-lines"></div>
+            <div class="tk-total"><span><span class="fnum">08</span>Est. ticket gross</span><b id="tk-total">$0</b></div>
+            <div class="tk-total" style="margin-top:4px"><span class="hint" style="font-size:12px;color:var(--muted)">Service only, retail tracked separately</span></div>
+          </div>
+          <div class="panel privacy">
+            <div class="eyebrow">Privacy rules for this log</div>
+            <ul>
+              <li>No names, phone numbers, emails or dates of birth.</li>
+              <li>No free-text notes. Every field is a code or a number.</li>
+              <li>Keep it on a personal device, never a clinic computer.</li>
+            </ul>
+          </div>
+        </aside>
+      </div>
+
+      <div class="panel" style="margin-top:24px">
+        <div class="section-head">
+          <h2>Recent entries</h2>
+          <span class="hint" style="font-size:12px;color:var(--muted)" id="recent-count"></span>
+        </div>
+        <div class="table-wrap">
+          <table id="recent-table">
+            <thead><tr><th>Date</th><th>Client</th><th>Type</th><th>Source</th><th>Area</th><th>Products</th><th>Retail</th><th class="r">Gross</th><th>Rebook</th><th class="r">Interval</th><th></th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ MONTHLY SUMMARY ============ -->
+    <section class="view" id="view-summary" hidden>
+      <div class="sum-head">
+        <div>
+          <div class="eyebrow">Monthly audit</div>
+          <h2 id="sum-title">September 2026</h2>
+        </div>
+        <div class="field" style="min-width:180px">
+          <label for="f-month">Month</label>
+          <select id="f-month"></select>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px">
+        <div class="eyebrow" style="margin-bottom:8px">30-second elevator pitch</div>
+        <p class="pitch" id="pitch"></p>
+        <div class="actions" style="margin-top:14px">
+          <button class="btn small" id="btn-copy-pitch">Copy pitch</button>
+          <button class="btn small" id="btn-copy-csv">Copy month as CSV</button>
+        </div>
+      </div>
+
+      <div class="kpis" id="kpis" style="margin-top:16px"></div>
+
+      <div class="charts" style="margin-top:16px">
+        <div class="chart-card wide">
+          <div class="section-head" style="margin:0"><h3>Weekly production</h3>
+            <div class="legend"><span><i style="background:var(--s1)"></i>Service gross</span><span><i style="background:var(--s2)"></i>Retail</span></div></div>
+          <div class="chart-box"><canvas id="ch-weekly" aria-label="Weekly production chart"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Where the chair is filled from</h3>
+          <p class="note">Visits by source. Self-sourced plus referral is the book she brings herself.</p>
+          <div class="chart-box" style="height:200px"><canvas id="ch-source" aria-label="Visits by source"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="section-head" style="margin:0"><h3>New vs repeat, by week</h3>
+            <div class="legend"><span><i style="background:var(--s1)"></i>New consult</span><span><i style="background:var(--s2)"></i>Repeat</span></div></div>
+          <div class="chart-box" style="height:200px"><canvas id="ch-newrep" aria-label="New vs repeat visits by week"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Procedure mix by revenue</h3>
+          <p class="note">Service gross by primary treatment area.</p>
+          <div class="chart-box"><canvas id="ch-mix" aria-label="Revenue by treatment area"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <h3>Tox return cadence</h3>
+          <p class="note">Repeat neuromodulator visits by days since last treatment. Target window is 90–120 days.</p>
+          <div class="chart-box"><canvas id="ch-interval" aria-label="Tox return interval distribution"></canvas></div>
+        </div>
+      </div>
+
+      <div style="margin-top:28px">
+        <div class="section-head"><h2>Show the math</h2><span class="hint" style="font-size:12px;color:var(--muted)">This month's numbers plugged into each formula</span></div>
+        <div class="math" id="math"></div>
+      </div>
+
+      <div class="charts" style="margin-top:16px">
+        <div class="chart-card">
+          <h3>Average ticket vs benchmark</h3>
+          <div class="table-wrap"><table id="tbl-bench"><thead><tr><th>Category</th><th class="r">Visits</th><th class="r">Avg ticket</th><th>Benchmark</th><th></th></tr></thead><tbody></tbody></table></div>
+        </div>
+        <div class="chart-card">
+          <h3>Product usage</h3>
+          <div class="table-wrap"><table id="tbl-prod"><thead><tr><th>Product</th><th class="r">Visits</th><th class="r">Total</th><th class="r">Avg / visit</th><th class="r">Gross</th></tr></thead><tbody></tbody></table></div>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast" hidden></div>
+
+<script>
+(function () {
+  "use strict";
+  const STORE_KEY = "chairlog.v1";
+
+  const CATALOG = [
+    { name: "Botox", unit: "u", price: 13, step: 1 },
+    { name: "Dysport", unit: "u", price: 4.5, step: 5 },
+    { name: "Xeomin", unit: "u", price: 12, step: 1 },
+    { name: "Daxxify", unit: "u", price: 8, step: 5 },
+    { name: "Restylane Kysse", unit: "mL", price: 750, step: 0.5 },
+    { name: "Juvéderm Volbella", unit: "mL", price: 700, step: 0.5 },
+    { name: "Juvéderm Voluma", unit: "mL", price: 850, step: 0.5 },
+    { name: "RHA 4", unit: "mL", price: 800, step: 0.5 },
+    { name: "Restylane Eyelight", unit: "mL", price: 750, step: 0.5 },
+    { name: "Sculptra", unit: "vial", price: 900, step: 1 },
+    { name: "Radiesse", unit: "syr", price: 850, step: 1 }
+  ];
+  const AREAS = [
+    { name: "Upper Face Tox", cat: "Tox", def: ["Botox", 36] },
+    { name: "Masseter Tox", cat: "Tox", def: ["Botox", 50] },
+    { name: "Lip Flip / Lower Face Tox", cat: "Tox", def: ["Botox", 12] },
+    { name: "Lip Filler", cat: "Filler", def: ["Restylane Kysse", 1] },
+    { name: "Cheek Filler", cat: "Filler", def: ["Juvéderm Voluma", 2] },
+    { name: "Chin & Jawline Filler", cat: "Filler", def: ["RHA 4", 2] },
+    { name: "Tear Trough Filler", cat: "Filler", def: ["Restylane Eyelight", 1] },
+    { name: "Biostimulator", cat: "Biostimulator", def: ["Sculptra", 2] }
+  ];
+  const RETAIL = [
+    { name: "Growth Factor Serum", price: 180 },
+    { name: "Hyaluronic Hydrating Serum", price: 120 },
+    { name: "Retinol 0.5% Cream", price: 95 },
+    { name: "Tinted Mineral SPF 46", price: 58 },
+    { name: "Peptide Lip Treatment", price: 32 }
+  ];
+  const SOURCES = ["Clinic Lead", "Self-Sourced", "Referral"];
+  const catOf = (area) => (AREAS.find(a => a.name === area) || { cat: "Other" }).cat;
+  const prodOf = (name) => CATALOG.find(p => p.name === name);
+
+  const $ = (s, r = document) => r.querySelector(s);
+  const money = (n, d = 0) => "$" + Number(n || 0).toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d });
+  const pct = (n) => (isFinite(n) ? Math.round(n * 100) : 0) + "%";
+  const fmtQty = (q, u) => (u === "u" ? q + "u" : (Number.isInteger(q) && u !== "mL" ? q + " " + u : Number(q).toFixed(1) + u));
+  const prodLabel = (p) => p.name + " " + fmtQty(p.qty, p.unit);
+  const parseDate = (s) => { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); };
+  const iso = (d) => d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+  const fmtDate = (s) => parseDate(s).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const daysBetween = (a, b) => Math.round((parseDate(b) - parseDate(a)) / 86400000);
+  const esc = (s) => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  /* ---------- sample data (seeded so it's the same every load) ---------- */
+  function mulberry32(a) { return function () { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  function makeSample() {
+    const rnd = mulberry32(20260915);
+    const pick = (arr) => arr[Math.floor(rnd() * arr.length)];
+    const weighted = (pairs) => { let r = rnd() * pairs.reduce((s, p) => s + p[1], 0); for (const p of pairs) { if ((r -= p[1]) <= 0) return p[0]; } return pairs[0][0]; };
+    const LETTERS = "ABCDEFGHJKLMNPRSTW";
+    const seq = {};
+    const clients = [];
+    const newClient = () => {
+      const ini = pick(LETTERS) + pick(LETTERS);
+      seq[ini] = (seq[ini] || 0) + 1;
+      const c = { id: ini + "-" + String(seq[ini]).padStart(2, "0"), source: weighted([["Clinic Lead", 44], ["Self-Sourced", 31], ["Referral", 25]]), last: null };
+      clients.push(c); return c;
+    };
+    const visits = [];
+    const start = new Date(2026, 8, 1), end = new Date(2026, 9, 14);
+    for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+      const dow = d.getDay();
+      if (dow === 0 || dow === 1) continue; // Tue–Sat chair days
+      const n = dow === 6 ? 5 + Math.floor(rnd() * 2) : 3 + Math.floor(rnd() * 2);
+      for (let i = 0; i < n; i++) {
+        const isRepeat = rnd() < 0.6;
+        const c = isRepeat && clients.length > 6 && rnd() < 0.35 ? pick(clients) : newClient();
+        let interval = null, type = "New Consult";
+        if (isRepeat) { type = "Repeat"; interval = c.last ? daysBetween(c.last, iso(d)) : 78 + Math.floor(rnd() * 60); if (interval < 10) { type = "New Consult"; interval = null; } }
+        const area = weighted([["Upper Face Tox", 38], ["Masseter Tox", 7], ["Lip Flip / Lower Face Tox", 5], ["Lip Filler", 15], ["Cheek Filler", 9], ["Chin & Jawline Filler", 6], ["Tear Trough Filler", 5], ["Biostimulator", 9]]);
+        const a = AREAS.find(x => x.name === area);
+        const products = [];
+        const add = (name, qty) => { const p = prodOf(name); products.push({ name, qty, unit: p.unit, price: p.price }); };
+        if (a.cat === "Tox") {
+          const brand = weighted([["Botox", 70], ["Dysport", 18], ["Xeomin", 12]]);
+          let u = area === "Upper Face Tox" ? 20 + Math.floor(rnd() * 13) * 3 : area === "Masseter Tox" ? 40 + Math.floor(rnd() * 3) * 10 : 8 + Math.floor(rnd() * 3) * 2;
+          if (brand === "Dysport") u = Math.round(u * 2.5 / 5) * 5;
+          add(brand, u);
+          if (rnd() < 0.12) add("Restylane Kysse", 1);
+        } else if (a.cat === "Filler") {
+          const [nm] = a.def;
+          const alt = area === "Lip Filler" && rnd() < 0.35 ? "Juvéderm Volbella" : nm;
+          add(alt, area === "Lip Filler" || area === "Tear Trough Filler" ? (rnd() < 0.2 ? 0.5 : 1) : 1 + Math.floor(rnd() * 3));
+          if (rnd() < 0.25) add("Botox", 20 + Math.floor(rnd() * 6) * 4);
+        } else {
+          rnd() < 0.7 ? add("Sculptra", 1 + Math.floor(rnd() * 2)) : add("Radiesse", 1 + Math.floor(rnd() * 2));
+        }
+        const retail = rnd() < 0.27 ? pick(RETAIL) : null;
+        const rebookP = a.cat === "Tox" ? 0.74 : a.cat === "Biostimulator" ? 0.7 : 0.45;
+        const rebook = rnd() < rebookP ? "Yes" : "No";
+        const rebookDays = rebook === "Yes" ? (a.cat === "Tox" ? (rnd() < 0.8 ? 90 : 120) : a.cat === "Biostimulator" ? 42 : 180) : null;
+        visits.push({
+          uid: Math.random().toString(36).slice(2, 10), date: iso(d), id: c.id, type, source: c.source, area, products,
+          retail: retail ? retail.name : "", retailPrice: retail ? retail.price : 0, rebook, rebookDays, interval, sample: true
+        });
+        c.last = iso(d);
+      }
+    }
+    return visits;
+  }
+
+  /* ---------- store ---------- */
+  let visits = [];
+  function load() {
+    try { const raw = localStorage.getItem(STORE_KEY); if (raw) { visits = JSON.parse(raw); return; } } catch (e) {}
+    visits = makeSample();
+  }
+  function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(visits)); } catch (e) {} }
+  const gross = (v) => v.products.reduce((s, p) => s + p.qty * p.price, 0);
+
+  /* ---------- navigation ---------- */
+  function route() {
+    const which = location.hash === "#summary" ? "summary" : "log";
+    $("#view-log").hidden = which !== "log";
+    $("#view-summary").hidden = which !== "summary";
+    $("#tab-log").setAttribute("aria-current", which === "log" ? "page" : "false");
+    $("#tab-summary").setAttribute("aria-current", which === "summary" ? "page" : "false");
+    if (which === "summary") renderSummary();
+  }
+  window.addEventListener("hashchange", route);
+
+  function toast(msg) {
+    const t = $("#toast"); t.textContent = msg; t.hidden = false;
+    clearTimeout(toast._t); toast._t = setTimeout(() => (t.hidden = true), 2400);
+  }
+
+  /* ---------- LOG FORM ---------- */
+  const form = $("#visit-form");
+  AREAS.forEach(a => $("#f-area").append(new Option(a.name, a.name)));
+  $("#f-retail").append(new Option("None", ""));
+  RETAIL.forEach(r => $("#f-retail").append(new Option(r.name + " (" + money(r.price) + ")", r.name)));
+
+  function addProdRow(name, qty) {
+    const p = prodOf(name) || CATALOG[0];
+    const row = document.createElement("div");
+    row.className = "prod-row";
+    const idx = document.querySelectorAll(".prod-row:not(.head)").length;
+    row.innerHTML =
+      '<select aria-label="Product" id="pr-name-' + idx + '">' + CATALOG.map(c => '<option' + (c.name === p.name ? " selected" : "") + ">" + esc(c.name) + "</option>").join("") + "</select>" +
+      '<div class="qty-wrap"><input type="number" aria-label="Quantity" id="pr-qty-' + idx + '" min="0" step="' + p.step + '" value="' + qty + '"><span>' + p.unit + "</span></div>" +
+      '<input class="price-in" type="number" aria-label="Price per unit" id="pr-price-' + idx + '" min="0" step="0.5" value="' + p.price + '">' +
+      '<span class="line">$0</span>' +
+      '<button type="button" class="icon-btn" aria-label="Remove product">×</button>';
+    const sel = row.querySelector("select"), q = row.querySelector('input[aria-label="Quantity"]'), pr = row.querySelector(".price-in");
+    sel.addEventListener("change", () => { const c = prodOf(sel.value); pr.value = c.price; q.step = c.step; row.querySelector(".qty-wrap span").textContent = c.unit; updateTicket(); });
+    q.addEventListener("input", updateTicket); pr.addEventListener("input", updateTicket);
+    row.querySelector(".icon-btn").addEventListener("click", () => { row.remove(); updateTicket(); });
+    $("#prod-table").append(row);
+    updateTicket();
+  }
+  function readProducts() {
+    return [...document.querySelectorAll(".prod-row:not(.head)")].map(r => {
+      const name = r.querySelector("select").value;
+      return { name, qty: parseFloat(r.querySelector('input[aria-label="Quantity"]').value) || 0, unit: prodOf(name).unit, price: parseFloat(r.querySelector(".price-in").value) || 0 };
+    }).filter(p => p.qty > 0);
+  }
+  $("#btn-add-prod").addEventListener("click", () => addProdRow("Botox", 20));
+  $("#f-area").addEventListener("change", () => {
+    const a = AREAS.find(x => x.name === $("#f-area").value);
+    const rows = document.querySelectorAll(".prod-row:not(.head)");
+    if (rows.length <= 1) { rows.forEach(r => r.remove()); addProdRow(a.def[0], a.def[1]); }
+    $("#f-rebook-days").value = a.cat === "Tox" ? "90" : a.cat === "Biostimulator" ? "42" : "180";
+    updateTicket();
+  });
+  $("#f-retail").addEventListener("change", () => { const r = RETAIL.find(x => x.name === $("#f-retail").value); $("#f-retail-price").value = r ? r.price : ""; updateTicket(); });
+  $("#f-retail-price").addEventListener("input", updateTicket);
+  form.addEventListener("change", (e) => { if (e.target.name === "rebook") $("#rebook-when-field").hidden = e.target.value !== "Yes"; updateTicket(); });
+
+  const ID_RE = /^[A-Z]{2,3}-\d{2,3}$/;
+  function checkId() {
+    const el = $("#f-id"); el.value = el.value.toUpperCase().replace(/\s/g, "");
+    const v = el.value, hint = $("#id-hint");
+    el.classList.remove("invalid"); hint.className = "hint";
+    if (!v) { hint.textContent = "Initials + client number. Never a name, phone or birthday."; return null; }
+    if (/\d{4,}/.test(v) || /[A-Z]{4,}/.test(v)) { el.classList.add("invalid"); hint.className = "hint bad"; hint.textContent = "That looks like a name or number. Use initials + client number only, like CH-01."; return false; }
+    if (!ID_RE.test(v)) { hint.className = "hint bad"; hint.textContent = "Format: 2–3 initials, a dash, then a client number (CH-01)."; return false; }
+    const prior = visits.filter(x => x.id === v && x.date <= $("#f-date").value).sort((a, b) => b.date.localeCompare(a.date))[0];
+    if (prior) {
+      const gap = daysBetween(prior.date, $("#f-date").value);
+      hint.className = "hint ok"; hint.textContent = "Returning client. Last seen " + fmtDate(prior.date) + " for " + prior.area + ".";
+      $("#vt-rep").checked = true;
+      const src = SOURCES.indexOf(prior.source); if (src >= 0) document.querySelectorAll('input[name="source"]')[src].checked = true;
+      $("#f-interval").value = gap;
+      $("#interval-hint").textContent = "Auto-filled: " + gap + " days since " + fmtDate(prior.date) + ".";
+    } else {
+      hint.className = "hint"; hint.textContent = "New to this log. If she's seen this client before, enter the interval by hand.";
+      $("#interval-hint").textContent = "Days since this client's last visit. Filled in for you when the ID is already in the log.";
+    }
+    return true;
+  }
+  $("#f-id").addEventListener("input", () => { checkId(); updateTicket(); });
+  $("#f-date").addEventListener("change", () => { checkId(); });
+
+  function updateTicket() {
+    const prods = readProducts();
+    document.querySelectorAll(".prod-row:not(.head)").forEach(r => {
+      const q = parseFloat(r.querySelector('input[aria-label="Quantity"]').value) || 0, p = parseFloat(r.querySelector(".price-in").value) || 0;
+      r.querySelector(".line").textContent = money(q * p);
+    });
+    const g = prods.reduce((s, p) => s + p.qty * p.price, 0);
+    $("#tk-id").textContent = $("#f-id").value || "—";
+    const type = form.vtype.value, src = form.source.value, rb = form.rebook.value;
+    $("#tk-chips").innerHTML =
+      '<span class="chip accent">' + esc(type) + "</span>" +
+      '<span class="chip">' + esc(src) + "</span>" +
+      '<span class="chip ' + (rb === "Yes" ? "good" : "warn") + '">' + (rb === "Yes" ? "Rebooked " + $("#f-rebook-days").selectedOptions[0].text.split(" (")[0] : "Not rebooked") + "</span>";
+    const lines = prods.map(p => "<div><span>" + esc(prodLabel(p)) + ' <span style="color:var(--muted)">× ' + money(p.price, p.price % 1 ? 2 : 0) + "</span></span><span>" + money(p.qty * p.price) + "</span></div>");
+    const rp = parseFloat($("#f-retail-price").value) || 0;
+    if ($("#f-retail").value) lines.push('<div style="color:var(--muted)"><span>Retail: ' + esc($("#f-retail").value) + "</span><span>" + money(rp) + "</span></div>");
+    $("#tk-lines").innerHTML = lines.join("") || '<div style="color:var(--muted)"><span>No products yet</span><span></span></div>';
+    $("#tk-total").textContent = money(g);
+  }
+
+  function resetForm() {
+    form.reset();
+    $("#f-date").value = iso(new Date());
+    document.querySelectorAll(".prod-row:not(.head)").forEach(r => r.remove());
+    addProdRow("Botox", 36);
+    $("#f-rebook-days").value = "90";
+    $("#rebook-when-field").hidden = false;
+    checkId(); updateTicket();
+  }
+  $("#btn-reset").addEventListener("click", resetForm);
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const ok = checkId();
+    if (!ok) { $("#f-id").classList.add("invalid"); $("#f-id").focus(); if (ok === null) { $("#id-hint").className = "hint bad"; $("#id-hint").textContent = "Client ID is required, like CH-01."; } return; }
+    const products = readProducts();
+    if (!products.length) { toast("Add at least one product with a quantity."); return; }
+    const rb = form.rebook.value;
+    const v = {
+      uid: Math.random().toString(36).slice(2, 10), date: $("#f-date").value, id: $("#f-id").value, type: form.vtype.value, source: form.source.value,
+      area: $("#f-area").value, products, retail: $("#f-retail").value, retailPrice: $("#f-retail").value ? (parseFloat($("#f-retail-price").value) || 0) : 0,
+      rebook: rb, rebookDays: rb === "Yes" ? parseInt($("#f-rebook-days").value, 10) : null,
+      interval: $("#f-interval").value === "" ? null : parseInt($("#f-interval").value, 10)
+    };
+    visits.push(v); save(); renderRecent(); refreshIds();
+    toast("Saved " + v.id + " · " + money(gross(v)));
+    resetForm();
+  });
+
+  /* ---------- recent table ---------- */
+  function renderRecent() {
+    const rows = [...visits].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 12);
+    $("#recent-count").textContent = visits.length + " visits in log, showing latest " + rows.length;
+    $("#recent-table tbody").innerHTML = rows.map(v =>
+      "<tr><td>" + fmtDate(v.date) + '</td><td class="mono">' + esc(v.id) + "</td><td>" + (v.type === "Repeat" ? "Repeat" : "New") + "</td><td>" + esc(v.source) + "</td><td>" + esc(v.area) +
+      "</td><td>" + esc(v.products.map(prodLabel).join(", ")) + "</td><td>" + (v.retail ? esc(v.retail) + " (" + money(v.retailPrice) + ")" : '<span style="color:var(--muted)">—</span>') +
+      '</td><td class="r mono">' + money(gross(v)) + "</td><td>" + (v.rebook === "Yes" ? '<span class="chip good">Yes · ' + v.rebookDays + "d</span>" : '<span class="chip warn">No</span>') +
+      '</td><td class="r mono">' + (v.interval ?? "—") + '</td><td><button class="btn small ghost danger" data-del="' + v.uid + '">Delete</button></td></tr>'
+    ).join("") || '<tr><td colspan="11" style="color:var(--muted)">No visits yet. Log the first one above.</td></tr>';
+  }
+  $("#recent-table").addEventListener("click", (e) => {
+    const b = e.target.closest("[data-del]"); if (!b) return;
+    if (b.dataset.armed) { visits = visits.filter(v => v.uid !== b.dataset.del); save(); renderRecent(); refreshIds(); toast("Entry deleted"); }
+    else { b.dataset.armed = "1"; b.textContent = "Confirm"; setTimeout(() => { if (b.isConnected) { delete b.dataset.armed; b.textContent = "Delete"; } }, 3000); }
+  });
+  function refreshIds() {
+    const ids = [...new Set(visits.map(v => v.id))].sort();
+    $("#known-ids").innerHTML = ids.map(i => '<option value="' + esc(i) + '">').join("");
+    const hasSample = visits.some(v => v.sample);
+    $("#sample-banner").hidden = !hasSample;
+  }
+  function clearIdle() {
+    const zone = $("#clear-zone");
+    zone.innerHTML = '<button class="btn small" id="btn-clear">Clear sample data</button>';
+    $("#btn-clear").onclick = () => {
+      zone.innerHTML = '<span>Remove all sample visits?</span><button class="btn small danger" id="clear-yes">Remove</button><button class="btn small ghost" id="clear-no">Keep</button>';
+      $("#clear-yes").onclick = () => { visits = visits.filter(v => !v.sample); save(); renderRecent(); refreshIds(); if (!$("#view-summary").hidden) renderSummary(); toast("Sample data removed"); clearIdle(); };
+      $("#clear-no").onclick = clearIdle;
+    };
+  }
+  clearIdle();
+
+  /* ---------- SUMMARY ---------- */
+  const charts = {};
+  const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+  function monthsAvailable() {
+    const m = [...new Set(visits.map(v => v.date.slice(0, 7)))].sort().reverse();
+    return m;
+  }
+  function monthName(ym) { const [y, m] = ym.split("-").map(Number); return new Date(y, m - 1, 1).toLocaleDateString("en-US", { month: "long", year: "numeric" }); }
+  function populateMonths() {
+    const sel = $("#f-month"), cur = sel.value, months = monthsAvailable();
+    sel.innerHTML = months.map(m => '<option value="' + m + '">' + monthName(m) + (m === iso(new Date()).slice(0, 7) ? " (in progress)" : "") + "</option>").join("");
+    if (months.includes(cur)) sel.value = cur;
+    else if (months.length) {
+      const counts = months.map(m => [m, visits.filter(v => v.date.startsWith(m)).length]).sort((a, b) => b[1] - a[1]);
+      sel.value = counts[0][0];
+    }
+  }
+  $("#f-month").addEventListener("change", renderSummary);
+
+  function weekKey(s) { const d = parseDate(s); const day = (d.getDay() + 6) % 7; d.setDate(d.getDate() - day); return iso(d); }
+  function weekLabel(k, ym) {
+    const s = parseDate(k), e = new Date(s); e.setDate(e.getDate() + 6);
+    const [y, m] = ym.split("-").map(Number);
+    const ms = new Date(y, m - 1, 1), me = new Date(y, m, 0);
+    const a = s < ms ? ms : s, b = e > me ? me : e;
+    const mo = a.toLocaleDateString("en-US", { month: "short" });
+    return mo + " " + a.getDate() + "–" + b.getDate();
+  }
+
+  function compute(ym) {
+    const V = visits.filter(v => v.date.startsWith(ym));
+    const n = V.length;
+    const service = V.reduce((s, v) => s + gross(v), 0);
+    const retail = V.reduce((s, v) => s + (v.retailPrice || 0), 0);
+    const uniq = new Set(V.map(v => v.id));
+    const repeatIds = new Set(V.filter(v => v.type === "Repeat").map(v => v.id));
+    const rebooked = V.filter(v => v.rebook === "Yes").length;
+    const selfish = V.filter(v => v.source !== "Clinic Lead").length;
+    const selfOnly = V.filter(v => v.source === "Self-Sourced").length;
+    const retailN = V.filter(v => v.retail).length;
+    const days = new Set(V.map(v => v.date)).size;
+    const toxRepeat = V.filter(v => catOf(v.area) === "Tox" && v.type === "Repeat" && v.interval != null);
+    const inWindow = toxRepeat.filter(v => v.interval >= 90 && v.interval <= 120).length;
+    const toxUnits = V.flatMap(v => v.products).filter(p => p.unit === "u" && p.name !== "Dysport");
+    return { V, n, service, retail, uniq: uniq.size, repeatIds: repeatIds.size, rebooked, selfish, selfOnly, retailN, days, toxRepeat, inWindow,
+      avgTicket: n ? service / n : 0, retention: uniq.size ? repeatIds.size / uniq.size : 0, rebookRate: n ? rebooked / n : 0,
+      selfRatio: n ? selfish / n : 0, retailConv: n ? retailN / n : 0,
+      avgToxUnits: toxUnits.length ? toxUnits.reduce((s, p) => s + p.qty, 0) / toxUnits.length : 0 };
+  }
+
+  function chip(cls, txt) { return '<span class="chip ' + cls + '">' + txt + "</span>"; }
+
+  function renderSummary() {
+    populateMonths();
+    const ym = $("#f-month").value;
+    if (!ym) { $("#sum-title").textContent = "No visits logged yet"; $("#kpis").innerHTML = ""; $("#pitch").textContent = "Log a few visits and the monthly summary will build itself here."; return; }
+    const m = compute(ym);
+    $("#sum-title").textContent = monthName(ym);
+
+    $("#pitch").innerHTML =
+      "In " + monthName(ym).split(" ")[0] + " I completed <em>" + m.n + " appointments</em> for <em>" + m.uniq + " unique clients</em>, producing <em>" + money(m.service + m.retail) +
+      "</em> in gross billing with an average service ticket of <em>" + money(m.avgTicket) + "</em>. <em>" + pct(m.retention) + "</em> of my clients were returning patients, I rebooked <em>" +
+      pct(m.rebookRate) + "</em> at checkout, and <em>" + pct(m.selfRatio) + "</em> of my chair came from my own network and referrals rather than clinic leads.";
+
+    const tiles = [
+      ["Gross production", money(m.service + m.retail), money(m.service) + " service · " + money(m.retail) + " retail", ""],
+      ["Appointments", m.n, m.days + " chair days · " + (m.days ? (m.n / m.days).toFixed(1) : 0) + " per day", ""],
+      ["Average ticket", money(m.avgTicket), "Service gross ÷ appointments", ""],
+      ["Unique clients", m.uniq, m.repeatIds + " returning · " + (m.uniq - m.repeatIds) + " new", ""],
+      ["Retention rate", pct(m.retention), "Repeat IDs ÷ unique IDs", m.retention >= 0.6 ? chip("good", "✓ Above 60% benchmark") : chip("warn", "▲ Below 60% benchmark")],
+      ["Rebook rate", pct(m.rebookRate), m.rebooked + " of " + m.n + " rebooked at checkout", m.rebookRate >= 0.6 ? chip("good", "✓ Strong") : chip("warn", "▲ Room to grow")],
+      ["Book independence", pct(m.selfRatio), pct(m.n ? m.selfOnly / m.n : 0) + " self-sourced · " + pct(m.n ? (m.selfish - m.selfOnly) / m.n : 0) + " referral", m.selfRatio >= 0.5 ? chip("good", "✓ Clients seek her out") : chip("", "Mostly clinic-fed")],
+      ["Retail conversion", pct(m.retailConv), m.retailN + " visits added skincare", ""]
+    ];
+    $("#kpis").innerHTML = tiles.map(t => '<div class="kpi"><span class="eyebrow">' + t[0] + '</span><span class="v">' + t[1] + '</span><span class="sub">' + t[2] + "</span>" + t[3] + "</div>").join("");
+
+    // math
+    const F = (title, num, den, nl, dl, res, bench) =>
+      '<div class="formula"><h3>' + title + '</h3><div class="eq"><span class="frac"><span>' + nl + '</span><span>' + dl + '</span></span><span>=</span><span class="frac"><span>' + num + '</span><span>' + den + '</span></span><span>=</span><span class="res">' + res + "</span></div>" + (bench ? '<div class="bench">' + bench + "</div>" : "") + "</div>";
+    $("#math").innerHTML =
+      F("Average ticket", money(m.service), m.n, "Total est. gross billing", "Completed appointments", money(m.avgTicket), "Benchmark: tox-only $350–$500 · filler $700–$1,200+") +
+      F("Patient retention", m.repeatIds, m.uniq, "Repeat client IDs", "Total unique client IDs", pct(m.retention), "Benchmark: above 60% is strong for a first-year injector. Use a 6-month window for the rolling figure.") +
+      F("Point-of-sale rebook rate", m.rebooked, m.n, "Visits with rebook = Yes", "Completed appointments", pct(m.rebookRate), "") +
+      F("Book independence ratio", m.selfish, m.n, "Self-sourced + referral visits", "Total visits", pct(m.selfRatio), "A high ratio shows clients seek out her technique, not just clinic walk-ins.");
+
+    // benchmark table
+    const cats = [["Tox", 350, 500], ["Filler", 700, 1200], ["Biostimulator", null, null]];
+    $("#tbl-bench tbody").innerHTML = cats.map(([c, lo, hi]) => {
+      const vv = m.V.filter(v => catOf(v.area) === c); const avg = vv.length ? vv.reduce((s, v) => s + gross(v), 0) / vv.length : 0;
+      let st = '<span style="color:var(--muted)">—</span>';
+      if (lo && vv.length) st = avg > hi ? chip("good", "▲ Above") : avg >= lo ? chip("good", "✓ In range") : chip("warn", "▼ Below");
+      return "<tr><td>" + c + '</td><td class="r mono">' + vv.length + '</td><td class="r mono">' + money(avg) + "</td><td>" + (lo ? money(lo) + "–" + money(hi) + (c === "Filler" ? "+" : "") : "No benchmark") + "</td><td>" + st + "</td></tr>";
+    }).join("");
+
+    // product table
+    const pm = {};
+    m.V.forEach(v => v.products.forEach(p => { const o = pm[p.name] || (pm[p.name] = { visits: 0, qty: 0, gross: 0, unit: p.unit }); o.visits++; o.qty += p.qty; o.gross += p.qty * p.price; }));
+    $("#tbl-prod tbody").innerHTML = Object.entries(pm).sort((a, b) => b[1].gross - a[1].gross).map(([k, o]) =>
+      "<tr><td>" + esc(k) + '</td><td class="r mono">' + o.visits + '</td><td class="r mono">' + fmtQty(+o.qty.toFixed(1), o.unit) + '</td><td class="r mono">' + fmtQty(+(o.qty / o.visits).toFixed(1), o.unit) + '</td><td class="r mono">' + money(o.gross) + "</td></tr>").join("");
+
+    drawCharts(m, ym);
+  }
+
+  function drawCharts(m, ym) {
+    if (typeof Chart === "undefined") return;
+    const ink = css("--ink"), muted = css("--muted"), line = css("--line"), surf = css("--surface");
+    const s1 = css("--s1"), s2 = css("--s2"), s3 = css("--s3");
+    Chart.defaults.font.family = css("--f-body").split(",")[0].replace(/"/g, "");
+    Chart.defaults.color = muted;
+    const base = (extra) => Object.assign({
+      responsive: true, maintainAspectRatio: false, animation: { duration: matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 400 },
+      plugins: { legend: { display: false }, tooltip: { backgroundColor: ink, titleColor: surf, bodyColor: surf, padding: 10, cornerRadius: 8, displayColors: true, boxPadding: 4 } },
+      interaction: { mode: "index", intersect: false }
+    }, extra);
+    const axisY = (fmt, stacked) => ({ stacked: !!stacked, beginAtZero: true, grid: { color: line, drawTicks: false }, border: { display: false }, ticks: { color: muted, padding: 8, callback: fmt, maxTicksLimit: 5 } });
+    const axisX = (stacked) => ({ stacked: !!stacked, grid: { display: false }, border: { color: line }, ticks: { color: muted } });
+    const bar = (label, data, color, extra) => Object.assign({ label, data, backgroundColor: color, borderColor: surf, borderWidth: { top: 2 }, borderRadius: 4, borderSkipped: "start", maxBarThickness: 56 }, extra || {});
+    const make = (id, cfg) => { if (charts[id]) charts[id].destroy(); charts[id] = new Chart(document.getElementById(id), cfg); };
+
+    // weekly
+    const wk = [...new Set(m.V.map(v => weekKey(v.date)))].sort();
+    const wSvc = wk.map(k => m.V.filter(v => weekKey(v.date) === k).reduce((s, v) => s + gross(v), 0));
+    const wRet = wk.map(k => m.V.filter(v => weekKey(v.date) === k).reduce((s, v) => s + (v.retailPrice || 0), 0));
+    const kfmt = (v) => "$" + (v >= 1000 ? (v / 1000).toFixed(v % 1000 ? 1 : 0) + "k" : v);
+    make("ch-weekly", { type: "bar", data: { labels: wk.map(k => weekLabel(k, ym)), datasets: [bar("Service gross", wSvc, s1, { borderRadius: 0 }), bar("Retail", wRet, s2)] },
+      options: base({ scales: { x: axisX(true), y: axisY(kfmt, true) }, plugins: { legend: { display: false }, tooltip: Object.assign(base().plugins.tooltip, { callbacks: { label: (c) => " " + c.dataset.label + ": " + money(c.raw), footer: (items) => "Total: " + money(items.reduce((s, i) => s + i.raw, 0)) } }) } }) });
+
+    // sources
+    const sc = SOURCES.map(s => m.V.filter(v => v.source === s).length);
+    make("ch-source", { type: "bar", data: { labels: SOURCES, datasets: [{ label: "Visits", data: sc, backgroundColor: [s1, s2, s3], borderRadius: 4, borderSkipped: "start", maxBarThickness: 34 }] },
+      options: base({ indexAxis: "y", scales: { x: axisY(v => v), y: { grid: { display: false }, border: { display: false }, ticks: { color: ink } } },
+        plugins: { legend: { display: false }, tooltip: Object.assign(base().plugins.tooltip, { callbacks: { label: (c) => " " + c.raw + " visits (" + pct(c.raw / m.n) + ")" } }) } }) });
+
+    // new vs repeat
+    const wNew = wk.map(k => m.V.filter(v => weekKey(v.date) === k && v.type !== "Repeat").length);
+    const wRep = wk.map(k => m.V.filter(v => weekKey(v.date) === k && v.type === "Repeat").length);
+    make("ch-newrep", { type: "bar", data: { labels: wk.map(k => weekLabel(k, ym)), datasets: [bar("New consult", wNew, s1, { borderRadius: 0 }), bar("Repeat", wRep, s2)] },
+      options: base({ scales: { x: axisX(true), y: axisY(v => v, true) } }) });
+
+    // mix
+    const mix = AREAS.map(a => [a.name, m.V.filter(v => v.area === a.name).reduce((s, v) => s + gross(v), 0), m.V.filter(v => v.area === a.name).length]).filter(x => x[2]).sort((a, b) => b[1] - a[1]);
+    make("ch-mix", { type: "bar", data: { labels: mix.map(x => x[0]), datasets: [{ label: "Service gross", data: mix.map(x => x[1]), backgroundColor: s1, borderRadius: 4, borderSkipped: "start", maxBarThickness: 22 }] },
+      options: base({ indexAxis: "y", scales: { x: axisY(kfmt), y: { grid: { display: false }, border: { display: false }, ticks: { color: ink } } },
+        plugins: { legend: { display: false }, tooltip: Object.assign(base().plugins.tooltip, { callbacks: { label: (c) => " " + money(c.raw) + " · " + mix[c.dataIndex][2] + " visits" } }) } }) });
+
+    // interval buckets
+    const B = [["< 75", 0, 74], ["75–89", 75, 89], ["90–104", 90, 104], ["105–120", 105, 120], ["121–150", 121, 150], ["> 150", 151, 1e9]];
+    const bc = B.map(b => m.toxRepeat.filter(v => v.interval >= b[1] && v.interval <= b[2]).length);
+    const inWin = B.map(b => b[1] >= 90 && b[2] <= 120);
+    make("ch-interval", { type: "bar", data: { labels: B.map(b => b[0] + " d"), datasets: [{ label: "Repeat tox visits", data: bc, backgroundColor: inWin.map(w => w ? s3 : s1), borderRadius: 4, borderSkipped: "start", maxBarThickness: 48 }] },
+      options: base({ scales: { x: axisX(), y: axisY(v => (Number.isInteger(v) ? v : "")) },
+        plugins: { legend: { display: false }, tooltip: Object.assign(base().plugins.tooltip, { callbacks: { label: (c) => " " + c.raw + " visits" + (inWin[c.dataIndex] ? " · in target window" : "") } }),
+          subtitle: { display: true, position: "bottom", align: "start", color: muted, text: m.toxRepeat.length ? pct(m.inWindow / m.toxRepeat.length) + " of " + m.toxRepeat.length + " repeat tox visits landed in the 90–120 day window (green)" : "No repeat tox visits this month" } } }) });
+  }
+  matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => { if (!$("#view-summary").hidden) renderSummary(); });
+  new MutationObserver(() => { if (!$("#view-summary").hidden) renderSummary(); }).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+  /* ---------- copy helpers ---------- */
+  function copy(text, okMsg) {
+    try { navigator.clipboard.writeText(text).then(() => toast(okMsg), () => toast("Copy was blocked. Select the text and copy it by hand.")); }
+    catch (e) { toast("Copy was blocked. Select the text and copy it by hand."); }
+  }
+  $("#btn-copy-pitch").addEventListener("click", () => copy($("#pitch").textContent, "Pitch copied"));
+  $("#btn-copy-csv").addEventListener("click", () => {
+    const ym = $("#f-month").value;
+    const head = ["Date", "Client ID", "Visit Type", "Source", "Primary Treatment Area", "Product & Quantity", "Retail Add-on", "Retail $", "Est. Ticket Gross", "Rebooked", "Treatment Interval (Days)"];
+    const q = (s) => '"' + String(s ?? "").replace(/"/g, '""') + '"';
+    const rows = visits.filter(v => v.date.startsWith(ym)).sort((a, b) => a.date.localeCompare(b.date)).map(v =>
+      [v.date, v.id, v.type, v.source, v.area, v.products.map(prodLabel).join("; "), v.retail, v.retailPrice || "", gross(v), v.rebook === "Yes" ? "Yes (" + v.rebookDays + " days)" : "No", v.interval ?? ""].map(q).join(","));
+    copy([head.map(q).join(",")].concat(rows).join("\n"), rows.length + " rows copied. Paste into a spreadsheet.");
+  });
+
+  /* ---------- boot ---------- */
+  load(); refreshIds();
+  resetForm();
+  $("#f-id").value = ""; checkId(); updateTicket();
+  renderRecent();
+  route();
+})();
+</script>
