@@ -1,8 +1,15 @@
 # Chair Log
 
 A private, offline Progressive Web App for an aesthetic injector to log her own book of business after each
-appointment and turn it into a monthly summary: gross production, average ticket, retention, rebook rate and book
-independence.
+appointment, and to see it two ways:
+
+- **Insights**, for her: what to focus on (rule-based suggestions from the last 90 days), monthly goals, the
+  month/YTD review, client loyalty cohorts, the rebook pipeline, busy patterns, and growth and mix trends.
+- **Employer value**, for interviews: only the three things clinic directors ask for (active client volume,
+  retention and rebook rate, revenue production), each marked as logged, estimated or missing.
+
+Months she didn't log visit by visit can be entered as **monthly totals** (typed in or uploaded as CSV); they show
+as estimates.
 
 - **No patient identity is stored.** Clients are de-identified IDs like `CH-01`; input that looks like a name or
   phone number is rejected. There is no notes field.
@@ -30,10 +37,12 @@ Pushing to `main` runs lint and all tests, then deploys `dist/` to GitHub Pages
 
 ```
 src/
-  domain/      pure logic, fully unit-tested: types, validation, metrics, summary, csv, backup, pin, visitForm
+  domain/      pure logic, fully unit-tested: types, validation, metrics, summary, csv, backup, pin, visitForm,
+               monthRecords, monthly, insights, value
   db/          Dexie (IndexedDB) schema, repository, sample data generator
   app/         App shell, routes, data context, toast, theme
-  features/    log, history, summary, clients, settings, onboarding, lock
+  features/    log, history, insights, value, months, summary (shared charts + report), clients, settings,
+               onboarding, lock
   pwa/         install prompt, update prompt, storage persistence, file export
 tests/
   unit/        Vitest

@@ -28,8 +28,8 @@ export function ReportPage() {
   return (
     <article className="report">
       <div className="actions no-print">
-        <Link className="btn ghost" to={`/summary?${p.query}`}>
-          ← Back to summary
+        <Link className="btn ghost" to="/value">
+          ← Back to employer value
         </Link>
         <button type="button" className="btn primary" onClick={() => window.print()}>
           Print / Save as PDF

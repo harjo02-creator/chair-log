@@ -12,8 +12,14 @@ export async function logVisit(page: Page, date: string, clientId: string) {
   await page.getByRole('button', { name: 'Save visit' }).click();
 }
 
-export async function gotoTab(page: Page, name: 'Log' | 'History' | 'Summary' | 'Settings') {
-  const full = { Log: 'Log a visit', History: 'History', Summary: 'Summary', Settings: 'Settings' }[name];
+export async function gotoTab(page: Page, name: 'Log' | 'History' | 'Insights' | 'Value' | 'Settings') {
+  const full = {
+    Log: 'Log a visit',
+    History: 'History',
+    Insights: 'Insights',
+    Value: 'Employer value',
+    Settings: 'Settings',
+  }[name];
   const nav = page.getByRole('navigation', { name: 'Pages' });
   // Header tabs on desktop, bottom tabs on phones; only one set is visible.
   await nav

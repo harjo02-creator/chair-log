@@ -18,7 +18,7 @@ for (const scheme of ['light', 'dark'] as const) {
     await check('onboarding');
     await page.getByRole('button', { name: 'Explore with sample data' }).click();
     await expect(page.getByText('Sample data.', { exact: false })).toBeVisible();
-    for (const route of ['log', 'history', 'summary', 'clients', 'settings', 'report']) {
+    for (const route of ['log', 'history', 'insights', 'value', 'months', 'clients', 'settings', 'report']) {
       await page.goto(`./#/${route}`);
       await page.waitForTimeout(600);
       await check(route);

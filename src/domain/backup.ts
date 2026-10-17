@@ -2,6 +2,8 @@
 import { CATEGORIES, UNITS, type Catalogs, type Settings, type Visit, type YearMonth } from './types';
 import { validateVisit } from './validation';
 import { monthOf } from './dates';
+import { GOAL_META, type Goal } from './insights';
+import { emptyMonthRecord, validateMonthRecord, type MonthRecord } from './monthRecords';
 
 export const BACKUP_APP_ID = 'chair-log';
 
@@ -15,6 +17,9 @@ export interface Backup {
   visits: Visit[];
   catalogs: Catalogs;
   settings: BackupSettings;
+  /** Added in schema v2; empty when restoring an older backup. */
+  monthRecords: MonthRecord[];
+  goals: Goal[];
 }
 
 export function makeBackup(
@@ -23,6 +28,7 @@ export function makeBackup(
   settings: Settings,
   exportedAt: string,
   schemaVersion: number,
+  extra: { monthRecords: MonthRecord[]; goals: Goal[] } = { monthRecords: [], goals: [] },
 ): Backup {
   return {
     app: BACKUP_APP_ID,
@@ -31,6 +37,8 @@ export function makeBackup(
     visits,
     catalogs,
     settings: { rollingRetentionMonths: settings.rollingRetentionMonths, theme: settings.theme },
+    monthRecords: extra.monthRecords,
+    goals: extra.goals,
   };
 }
 
@@ -94,6 +102,26 @@ export function parseBackup(text: string, currentSchemaVersion: number): ParseRe
     uids.add(v.uid);
   }
 
+  const monthRecords: MonthRecord[] = [];
+  if (data.monthRecords !== undefined && !Array.isArray(data.monthRecords))
+    return { ok: false, error: 'The backup’s monthly totals are damaged.' };
+  for (const r of (data.monthRecords ?? []) as unknown[]) {
+    if (!isObj(r) || typeof r.month !== 'string')
+      return { ok: false, error: 'A month in the backup is damaged.' };
+    const rec = { ...emptyMonthRecord(r.month, ''), ...r } as MonthRecord;
+    const errs = validateMonthRecord(rec);
+    if (errs.length) return { ok: false, error: `${r.month} in the backup is invalid: ${errs[0]}` };
+    monthRecords.push(rec);
+  }
+  const goals: Goal[] = [];
+  if (data.goals !== undefined && !Array.isArray(data.goals))
+    return { ok: false, error: 'The backup’s goals are damaged.' };
+  for (const g of (data.goals ?? []) as unknown[]) {
+    if (!isObj(g) || !(String(g.metric) in GOAL_META) || typeof g.target !== 'number' || !(g.target > 0))
+      return { ok: false, error: 'A goal in the backup is damaged.' };
+    goals.push(g as unknown as Goal);
+  }
+
   const s = isObj(data.settings) ? data.settings : {};
   return {
     ok: true,
@@ -107,6 +135,8 @@ export function parseBackup(text: string, currentSchemaVersion: number): ParseRe
         rollingRetentionMonths: typeof s.rollingRetentionMonths === 'number' ? s.rollingRetentionMonths : 6,
         theme: s.theme === 'light' || s.theme === 'dark' ? s.theme : 'system',
       },
+      monthRecords,
+      goals,
     },
   };
 }
@@ -136,6 +166,20 @@ export function mergeVisits(existing: readonly Visit[], incoming: readonly Visit
   for (const v of incoming) {
     const cur = map.get(v.uid);
     if (!cur || v.updatedAt > cur.updatedAt) map.set(v.uid, v);
+  }
+  return [...map.values()];
+}
+
+/** Merge keyed records (months, goals); the more recently updated one wins. */
+export function mergeByKey<T extends { updatedAt: string }>(
+  existing: readonly T[],
+  incoming: readonly T[],
+  key: (x: T) => string,
+): T[] {
+  const map = new Map(existing.map((x) => [key(x), x]));
+  for (const x of incoming) {
+    const cur = map.get(key(x));
+    if (!cur || x.updatedAt > cur.updatedAt) map.set(key(x), x);
   }
   return [...map.values()];
 }

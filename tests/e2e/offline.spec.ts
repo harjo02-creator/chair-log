@@ -30,8 +30,8 @@ test('works fully offline after first load', async ({ page, context }) => {
   await recent.getByRole('button', { name: 'Confirm' }).click();
   await expect(page.getByText('Entry deleted')).toBeVisible();
 
-  // Summary and Settings are lazy-loaded chunks: they must come from the precache.
-  await gotoTab(page, 'Summary');
+  // Insights, Value and Settings are lazy-loaded chunks: they must come from the precache.
+  await gotoTab(page, 'Insights');
   await expect(page.getByRole('radio', { name: 'Month', exact: true })).toBeChecked();
   await page.locator('#f-month').selectOption('2026-10');
   await expect(page.getByRole('heading', { name: 'October 2026' })).toBeVisible();
@@ -42,6 +42,9 @@ test('works fully offline after first load', async ({ page, context }) => {
     page.getByRole('button', { name: 'Download CSV' }).click(),
   ]);
   expect(dl.suggestedFilename()).toBe('chair-log-2026-10.csv');
+
+  await gotoTab(page, 'Value');
+  await expect(page.getByRole('heading', { name: 'Employer value' })).toBeVisible();
 
   await gotoTab(page, 'Settings');
   await expect(page.getByRole('heading', { name: 'Backup & restore' })).toBeVisible();

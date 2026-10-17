@@ -4,7 +4,13 @@ import { useEffect, useRef } from 'react';
 const TABS = [
   { to: '/log', label: 'Log a visit', short: 'Log', icon: 'M12 5v14M5 12h14' },
   { to: '/history', label: 'History', short: 'History', icon: 'M4 6h16M4 12h16M4 18h10' },
-  { to: '/summary', label: 'Summary', short: 'Summary', icon: 'M5 20V10M12 20V4M19 20v-7' },
+  { to: '/insights', label: 'Insights', short: 'Insights', icon: 'M5 20V10M12 20V4M19 20v-7' },
+  {
+    to: '/value',
+    label: 'Employer value',
+    short: 'Value',
+    icon: 'M12 3l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.3 6.8 19.1l1-5.8L3.5 9.2l5.9-.8z',
+  },
   {
     to: '/settings',
     label: 'Settings',
@@ -19,7 +25,11 @@ export function Layout() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-  const active = (to: string) => pathname === to || (to === '/history' && pathname.startsWith('/clients'));
+  const active = (to: string) =>
+    pathname === to ||
+    (to === '/history' && pathname.startsWith('/clients')) ||
+    (to === '/value' && pathname === '/report') ||
+    (to === '/settings' && pathname === '/months');
 
   return (
     <>

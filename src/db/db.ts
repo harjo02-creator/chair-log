@@ -1,9 +1,11 @@
 import Dexie, { type EntityTable } from 'dexie';
 import { DEFAULT_CATALOGS } from '../domain/catalog';
+import type { Goal } from '../domain/insights';
+import type { MonthRecord } from '../domain/monthRecords';
 import type { Product, RetailItem, Settings, TreatmentArea, Visit } from '../domain/types';
 
 /** Bump together with a new `db.version(n)` block and its upgrade function. */
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = 2;
 
 /** In-progress Log form (LOG-15). Stored as an opaque JSON blob under id "visit-form". */
 export interface DraftRecord {
@@ -19,6 +21,8 @@ export class ChairLogDB extends Dexie {
   retail!: EntityTable<RetailItem, 'id'>;
   settings!: EntityTable<Settings, 'id'>;
   drafts!: EntityTable<DraftRecord, 'id'>;
+  monthRecords!: EntityTable<MonthRecord, 'month'>;
+  goals!: EntityTable<Goal, 'metric'>;
 
   constructor(name = 'chair-log') {
     super(name);
@@ -29,6 +33,11 @@ export class ChairLogDB extends Dexie {
       retail: 'id',
       settings: 'id',
       drafts: 'id',
+    });
+    // v2: monthly totals and monthly goals. New tables only, so no upgrade function.
+    this.version(2).stores({
+      monthRecords: 'month',
+      goals: 'metric',
     });
     this.on('populate', (tx) => {
       tx.table('products').bulkAdd(DEFAULT_CATALOGS.products);

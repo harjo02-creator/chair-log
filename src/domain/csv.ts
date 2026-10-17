@@ -320,3 +320,33 @@ export function importCsv(
     errorCount: out.filter((r) => !r.ok).length,
   };
 }
+
+const visitKey = (v: Pick<Visit, 'date' | 'clientId' | 'area' | 'serviceGrossCents'>) =>
+  `${v.date}|${v.clientId}|${v.area}|${v.serviceGrossCents}`;
+
+/**
+ * Rejects rows that match a visit already in the log (same date, client, area and ticket) or an
+ * earlier row in the same file, so uploading the same sheet twice doesn't double-count.
+ */
+export function rejectDuplicates(report: ImportReport, existing: readonly Visit[]): ImportReport {
+  const seen = new Set(existing.map(visitKey));
+  const rows = report.rows.map((r) => {
+    if (!r.ok || !r.visit) return r;
+    const k = visitKey(r.visit);
+    if (seen.has(k))
+      return {
+        ...r,
+        ok: false,
+        visit: undefined,
+        errors: ['Already in the log (same date, client, area and ticket).'],
+      };
+    seen.add(k);
+    return r;
+  });
+  return {
+    ...report,
+    rows,
+    okCount: rows.filter((r) => r.ok).length,
+    errorCount: rows.filter((r) => !r.ok).length,
+  };
+}

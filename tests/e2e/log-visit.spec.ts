@@ -73,17 +73,18 @@ test('log, auto-fill, edit and delete a visit', async ({ page }) => {
   await expect(page.getByText('Entry deleted')).toBeVisible();
   await expect(recent.getByRole('row')).toHaveCount(2);
 
-  // History and summary see the visit.
+  // History, Insights and Employer value see the visit.
   await gotoTab(page, 'History');
   await expect(page.getByText('1 visit · $1,218 service gross')).toBeVisible();
-  await gotoTab(page, 'Summary');
+  await gotoTab(page, 'Insights');
   await expect(page.getByRole('heading', { name: 'October 2026' })).toBeVisible();
+  await gotoTab(page, 'Value');
   await expect(page.locator('.pitch')).toContainText(
-    'In October I completed 1 appointment for 1 unique client, producing $1,398',
+    'I completed 1 appointment for 1 client at an average ticket of $1,398',
   );
 });
 
-test('sample data, summary charts and CSV export', async ({ page }) => {
+test('sample data, insights charts and CSV export', async ({ page }) => {
   // Keep a copy of the last Blob handed to a download link so the test can read the CSV.
   await page.addInitScript(() => {
     const orig = URL.createObjectURL;
@@ -95,18 +96,27 @@ test('sample data, summary charts and CSV export', async ({ page }) => {
   await page.goto('./');
   await page.getByRole('button', { name: 'Explore with sample data' }).click();
   await expect(page.getByText('Sample data.', { exact: false })).toBeVisible();
-  await gotoTab(page, 'Summary');
-  await expect(page.getByRole('heading', { name: 'September 2026' })).toBeVisible();
-  await expect(page.locator('.kpi')).toHaveCount(8);
-  await expect(page.locator('canvas')).toHaveCount(7);
+  await gotoTab(page, 'Insights');
+  const period = page.locator('#period');
+  await expect(period.getByRole('heading', { name: 'September 2026' })).toBeVisible();
+  await expect(period.locator('.kpi')).toHaveCount(8);
+  await expect(period.locator('canvas')).toHaveCount(7);
+  for (const section of [
+    'What to focus on',
+    'Client loyalty',
+    'Rebook pipeline',
+    'Busy patterns',
+    'Growth and mix',
+  ])
+    await expect(page.getByRole('heading', { name: section })).toBeVisible();
 
   // View as table toggle.
-  await page.getByRole('button', { name: 'View as table' }).first().click();
-  await expect(page.getByRole('cell', { name: 'Sep 1–6' })).toBeVisible();
+  await period.getByRole('button', { name: 'View as table' }).first().click();
+  await expect(period.getByRole('cell', { name: 'Sep 1–6' })).toBeVisible();
 
   const [dl] = await Promise.all([
     page.waitForEvent('download'),
-    page.getByRole('button', { name: 'Download CSV' }).click(),
+    period.getByRole('button', { name: 'Download CSV' }).click(),
   ]);
   expect(dl.suggestedFilename()).toBe('chair-log-2026-09.csv');
   const bytes = await page.evaluate(async () =>
@@ -119,6 +129,10 @@ test('sample data, summary charts and CSV export', async ({ page }) => {
     'Date,Client ID,Visit Type,Source,Primary Treatment Area,Product & Quantity,Retail Add-on,Retail $,Est. Ticket Gross,Rebooked,Treatment Interval (Days)',
   );
 
+  await gotoTab(page, 'Value');
+  await expect(page.getByRole('heading', { name: 'Volume of active clients' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Retention and rebook rate' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Revenue production' })).toBeVisible();
   await page.getByRole('link', { name: 'Book of Business one-pager' }).click();
   await expect(page.getByRole('button', { name: 'Print / Save as PDF' })).toBeVisible();
 });

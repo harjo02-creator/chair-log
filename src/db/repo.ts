@@ -2,7 +2,9 @@
 import { db, defaultSettings, SCHEMA_VERSION, type ChairLogDB } from './db';
 import { makeSampleVisits } from './sample';
 import { DEFAULT_CATALOGS } from '../domain/catalog';
-import { makeBackup, mergeCatalogs, mergeVisits, type Backup } from '../domain/backup';
+import { makeBackup, mergeByKey, mergeCatalogs, mergeVisits, type Backup } from '../domain/backup';
+import type { Goal } from '../domain/insights';
+import { MONTH_FIELDS, validateMonthRecord, type MonthRecord } from '../domain/monthRecords';
 import { serviceGrossCents, validateVisit } from '../domain/validation';
 import { todayISO } from '../domain/dates';
 import type { Catalogs, Product, RetailItem, Settings, TreatmentArea, Visit } from '../domain/types';
@@ -95,13 +97,16 @@ export async function resetCatalogs(d: ChairLogDB = db): Promise<void> {
 }
 
 export async function exportBackup(d: ChairLogDB = db): Promise<Backup> {
-  return d.transaction('r', [d.visits, d.products, d.areas, d.retail, d.settings], async () => {
-    const [visits, catalogs, settings] = await Promise.all([
+  const tables = [d.visits, d.products, d.areas, d.retail, d.settings, d.monthRecords, d.goals];
+  return d.transaction('r', tables, async () => {
+    const [visits, catalogs, settings, monthRecords, goals] = await Promise.all([
       d.visits.toArray(),
       getCatalogs(d),
       getSettings(d),
+      d.monthRecords.toArray(),
+      d.goals.toArray(),
     ]);
-    return makeBackup(visits, catalogs, settings, nowISO(), SCHEMA_VERSION);
+    return makeBackup(visits, catalogs, settings, nowISO(), SCHEMA_VERSION, { monthRecords, goals });
   });
 }
 
@@ -114,10 +119,20 @@ export async function restoreBackup(
   mode: 'merge' | 'replace',
   d: ChairLogDB = db,
 ): Promise<number> {
-  return d.transaction('rw', [d.visits, d.products, d.areas, d.retail, d.settings], async () => {
+  const tables = [d.visits, d.products, d.areas, d.retail, d.settings, d.monthRecords, d.goals];
+  return d.transaction('rw', tables, async () => {
     if (mode === 'replace') {
-      await Promise.all([d.visits.clear(), d.products.clear(), d.areas.clear(), d.retail.clear()]);
+      await Promise.all([
+        d.visits.clear(),
+        d.products.clear(),
+        d.areas.clear(),
+        d.retail.clear(),
+        d.monthRecords.clear(),
+        d.goals.clear(),
+      ]);
       await d.visits.bulkAdd(b.visits);
+      await d.monthRecords.bulkAdd(b.monthRecords);
+      await d.goals.bulkAdd(b.goals);
       await d.products.bulkAdd(b.catalogs.products);
       await d.areas.bulkAdd(b.catalogs.areas);
       await d.retail.bulkAdd(b.catalogs.retail);
@@ -129,6 +144,10 @@ export async function restoreBackup(
       await d.products.bulkPut(cat.products);
       await d.areas.bulkPut(cat.areas);
       await d.retail.bulkPut(cat.retail);
+      await d.monthRecords.bulkPut(
+        mergeByKey(await d.monthRecords.toArray(), b.monthRecords, (r) => r.month),
+      );
+      await d.goals.bulkPut(mergeByKey(await d.goals.toArray(), b.goals, (g) => g.metric));
     }
     return d.visits.count();
   });
@@ -139,10 +158,60 @@ export async function importVisits(visits: Visit[], d: ChairLogDB = db): Promise
   return visits.length;
 }
 
+/* ---------- monthly totals and goals ---------- */
+
+export async function saveMonthRecord(r: MonthRecord, d: ChairLogDB = db): Promise<MonthRecord> {
+  const rec = { ...r, updatedAt: nowISO() };
+  const errors = validateMonthRecord(rec);
+  if (errors.length) throw new ValidationError(errors);
+  await d.monthRecords.put(rec);
+  return rec;
+}
+
+export async function deleteMonthRecord(month: string, d: ChairLogDB = db): Promise<void> {
+  await d.monthRecords.delete(month);
+}
+
+/**
+ * Upserts imported months. With `fillBlanks`, a blank cell in the file keeps the month's existing
+ * value instead of clearing it, so a file with only some columns can't wipe the others.
+ */
+export async function importMonthRecords(
+  records: MonthRecord[],
+  d: ChairLogDB = db,
+  fillBlanks = true,
+): Promise<number> {
+  await d.transaction('rw', d.monthRecords, async () => {
+    for (const r of records) {
+      const cur = fillBlanks ? await d.monthRecords.get(r.month) : undefined;
+      const merged: MonthRecord = { ...r, updatedAt: nowISO() };
+      if (cur) for (const f of MONTH_FIELDS) merged[f.key] = r[f.key] ?? cur[f.key];
+      await d.monthRecords.put(merged);
+    }
+  });
+  return records.length;
+}
+
+export async function saveGoal(g: Goal, d: ChairLogDB = db): Promise<void> {
+  if (!(g.target > 0)) throw new ValidationError(['A goal needs a target above 0.']);
+  await d.goals.put({ ...g, updatedAt: nowISO() });
+}
+
+export async function deleteGoal(metric: Goal['metric'], d: ChairLogDB = db): Promise<void> {
+  await d.goals.delete(metric);
+}
+
 /** Deletes every visit, catalog change, draft and setting, then re-seeds defaults. */
 export async function eraseAllData(d: ChairLogDB = db): Promise<void> {
-  await d.transaction('rw', [d.visits, d.products, d.areas, d.retail, d.settings, d.drafts], async () => {
-    await Promise.all([d.visits.clear(), d.drafts.clear(), d.settings.clear()]);
+  const tables = [d.visits, d.products, d.areas, d.retail, d.settings, d.drafts, d.monthRecords, d.goals];
+  await d.transaction('rw', tables, async () => {
+    await Promise.all([
+      d.visits.clear(),
+      d.drafts.clear(),
+      d.settings.clear(),
+      d.monthRecords.clear(),
+      d.goals.clear(),
+    ]);
     await d.settings.add(defaultSettings());
   });
   await resetCatalogs(d);

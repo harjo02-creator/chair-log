@@ -4,7 +4,7 @@ import { useToast } from '../../app/toast';
 import { SCHEMA_VERSION } from '../../db/db';
 import { importVisits, newId, nowISO, restoreBackup } from '../../db/repo';
 import { parseBackup, previewBackup, type Backup } from '../../domain/backup';
-import { importCsv, visitsToCsv, withBom, type ImportReport } from '../../domain/csv';
+import { importCsv, rejectDuplicates, visitsToCsv, withBom, type ImportReport } from '../../domain/csv';
 import { todayISO } from '../../domain/dates';
 import { fmtLongDate, monthShort } from '../../domain/format';
 import { copyText, downloadFile } from '../../pwa/files';
@@ -136,13 +136,18 @@ export function DataSection() {
             accept=".csv,text/csv"
             onChange={async (e) => {
               const f = e.target.files?.[0];
-              setReport(f ? importCsv(await f.text(), catalogs, { now: nowISO(), newId }) : null);
+              setReport(
+                f
+                  ? rejectDuplicates(importCsv(await f.text(), catalogs, { now: nowISO(), newId }), visits)
+                  : null,
+              );
             }}
           />
           <span className="hint">
             Columns: Date, Client ID, Visit Type, Source, Primary Treatment Area, Product &amp; Quantity,
             Retail Add-on, Retail $, Est. Ticket Gross, Rebooked, Treatment Interval (Days). Rows with names
-            or phone numbers are rejected.
+            or phone numbers are rejected, and so are rows already in the log, so uploading the same file
+            twice is safe.
           </span>
         </div>
         {report && (

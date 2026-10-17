@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { useData } from '../../app/data';
 import { useToast } from '../../app/toast';
 import { eraseAllData, loadSampleData, removeSampleData, updateSettings } from '../../db/repo';
@@ -10,6 +11,7 @@ import type { Theme } from '../../domain/types';
 import { PrivacyRules } from '../log/PrivacyRules';
 import { CatalogEditor } from './CatalogEditor';
 import { DataSection } from './DataSection';
+import { GoalsSection } from './GoalsSection';
 import { LockSection } from './LockSection';
 
 export function SettingsPage() {
@@ -21,6 +23,11 @@ export function SettingsPage() {
     void isPersisted().then(setPersisted);
   }, [visits.length]);
   const sampleCount = visits.filter((v) => v.isSample).length;
+  const { hash } = useLocation();
+  // Links like /settings#goals land on that section.
+  useEffect(() => {
+    if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
+  }, [hash]);
 
   return (
     <div className="settings">
@@ -77,6 +84,21 @@ export function SettingsPage() {
           after about a week without a visit. Install the app and keep regular backups. Your log exists only
           on this device.
         </p>
+      </section>
+
+      <GoalsSection />
+
+      <section className="panel" aria-labelledby="months-title">
+        <h2 id="months-title">Monthly totals</h2>
+        <p className="small">
+          Numbers you track by the month: estimates for months you didn’t log visit by visit, days out of
+          office and model appointments. Enter them one month at a time or upload a spreadsheet.
+        </p>
+        <div className="actions">
+          <Link className="btn" to="/months">
+            Open monthly totals
+          </Link>
+        </div>
       </section>
 
       <LockSection />

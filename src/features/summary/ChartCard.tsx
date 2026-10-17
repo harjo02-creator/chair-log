@@ -28,6 +28,7 @@ export interface ChartTokens {
   s1: string;
   s2: string;
   s3: string;
+  s4: string;
   ink: string;
   muted: string;
   line: string;
@@ -40,6 +41,7 @@ export function readTokens(): ChartTokens {
     s1: cssVar('--s1'),
     s2: cssVar('--s2'),
     s3: cssVar('--s3'),
+    s4: cssVar('--s4'),
     ink: cssVar('--ink'),
     muted: cssVar('--muted'),
     line: cssVar('--line'),

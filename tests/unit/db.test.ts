@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { ChairLogDB } from '../../src/db/db';
+import { ChairLogDB, SCHEMA_VERSION } from '../../src/db/db';
 import {
   deleteVisit,
   eraseAllData,
@@ -65,7 +65,7 @@ describe('database', () => {
     await eraseAllData(d);
     expect(await d.visits.count()).toBe(0);
 
-    const parsed = parseBackup(json, 1);
+    const parsed = parseBackup(json, SCHEMA_VERSION);
     if (!parsed.ok) throw new Error(parsed.error);
     expect(previewBackup(parsed.backup)).toMatchObject({
       visits: 10,
@@ -79,7 +79,7 @@ describe('database', () => {
 
   it('merge dedupes by uid', async () => {
     for (const v of SEPTEMBER_VISITS.slice(0, 5)) await saveVisit(v, d);
-    const parsed = parseBackup(JSON.stringify(await exportBackup(d)), 1);
+    const parsed = parseBackup(JSON.stringify(await exportBackup(d)), SCHEMA_VERSION);
     if (!parsed.ok) throw new Error(parsed.error);
     for (const v of SEPTEMBER_VISITS.slice(5)) await saveVisit(v, d);
     expect(await restoreBackup(parsed.backup, 'merge', d)).toBe(10);

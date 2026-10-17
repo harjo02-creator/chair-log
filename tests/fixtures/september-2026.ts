@@ -129,3 +129,6 @@ export const EXPECTED = {
   ],
   mixOrder: ['upper-face-tox', 'biostimulator', 'cheek-filler', 'lip-filler', 'masseter-tox'],
 };
+
+/** Builders for tests that need their own visits. */
+export { v as makeVisit, line as makeLine };

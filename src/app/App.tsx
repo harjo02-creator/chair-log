@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useRef, useState, type ReactNode } from 'react';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { DataProvider, useData } from './data';
 import { ToastProvider } from './toast';
 import { applyTheme } from './theme';
@@ -13,8 +13,12 @@ import { Onboarding } from '../features/onboarding/Onboarding';
 import { LockScreen, LOCK_EVENT } from '../features/lock/LockScreen';
 
 // Charts and settings load on first visit to those screens, so the Log screen opens fast.
-const SummaryPage = lazy(() =>
-  import('../features/summary/SummaryPage').then((m) => ({ default: m.SummaryPage })),
+const InsightsPage = lazy(() =>
+  import('../features/insights/InsightsPage').then((m) => ({ default: m.InsightsPage })),
+);
+const ValuePage = lazy(() => import('../features/value/ValuePage').then((m) => ({ default: m.ValuePage })));
+const MonthsPage = lazy(() =>
+  import('../features/months/MonthsPage').then((m) => ({ default: m.MonthsPage })),
 );
 const ReportPage = lazy(() =>
   import('../features/summary/ReportPage').then((m) => ({ default: m.ReportPage })),
@@ -37,7 +41,10 @@ export function App() {
                 <Route element={<Layout />}>
                   <Route path="/log" element={<LogPage />} />
                   <Route path="/history" element={<HistoryPage />} />
-                  <Route path="/summary" element={page(<SummaryPage />)} />
+                  <Route path="/insights" element={page(<InsightsPage />)} />
+                  <Route path="/summary" element={<SummaryRedirect />} />
+                  <Route path="/value" element={page(<ValuePage />)} />
+                  <Route path="/months" element={page(<MonthsPage />)} />
                   <Route path="/report" element={page(<ReportPage />)} />
                   <Route path="/clients" element={<ClientsPage />} />
                   <Route path="/clients/:clientId" element={<ClientPage />} />
@@ -51,6 +58,12 @@ export function App() {
       </DataProvider>
     </ToastProvider>
   );
+}
+
+/** Summary became Insights; keep old links and bookmarks (with their period) working. */
+function SummaryRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/insights${search}`} replace />;
 }
 
 function ThemeSync() {
