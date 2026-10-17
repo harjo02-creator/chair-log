@@ -315,7 +315,7 @@ export function MonthsPage() {
             disabled={!monthRecords.length}
             onClick={() =>
               downloadFile(
-                `chair-log-monthly-totals-${today}.csv`,
+                `aurelle-monthly-totals-${today}.csv`,
                 withBom(monthRecordsToCsv(monthRecords)),
                 'text/csv;charset=utf-8',
               )

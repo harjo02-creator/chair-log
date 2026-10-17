@@ -104,7 +104,7 @@ export function DataSection() {
             disabled={!visits.length}
             onClick={() =>
               downloadFile(
-                `chair-log-all-${todayISO()}.csv`,
+                `aurelle-all-${todayISO()}.csv`,
                 withBom(visitsToCsv(visits, catalogs)),
                 'text/csv;charset=utf-8',
               )

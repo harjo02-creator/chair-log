@@ -41,7 +41,7 @@ test('works fully offline after first load', async ({ page, context }) => {
     page.waitForEvent('download'),
     page.getByRole('button', { name: 'Download CSV' }).click(),
   ]);
-  expect(dl.suggestedFilename()).toBe('chair-log-2026-10.csv');
+  expect(dl.suggestedFilename()).toBe('aurelle-2026-10.csv');
 
   await gotoTab(page, 'Value');
   await expect(page.getByRole('heading', { name: 'Employer value' })).toBeVisible();

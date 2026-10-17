@@ -236,7 +236,7 @@ export function SummaryCharts(props: {
           themeKey={themeKey}
           legend={[
             { label: 'Outside 90–120 days', color: 'var(--s1)' },
-            { label: 'In 90–120 day window', color: 'var(--s3)' },
+            { label: 'In 90–120 day window', color: 'var(--s4)' },
           ]}
           caption={
             m.toxRepeatCount
@@ -257,7 +257,7 @@ export function SummaryCharts(props: {
                   t,
                   'Repeat tox visits',
                   cadence.map((b) => b.count),
-                  cadence.map((b) => (b.inWindow ? t.s3 : t.s1)),
+                  cadence.map((b) => (b.inWindow ? t.s4 : t.s1)),
                 ),
               ],
             },

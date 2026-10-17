@@ -78,8 +78,8 @@ export function LogPage() {
       {showIosHint && (
         <div className="banner info" role="region" aria-label="Install">
           <span>
-            <b>Install Chair Log:</b> tap Share, then Add to Home Screen. Installed apps keep their data;
-            Safari can clear data for sites you don't install.
+            <b>Install Aurelle:</b> tap Share, then Add to Home Screen. Installed apps keep their data; Safari
+            can clear data for sites you don't install.
           </span>
           <span className="spacer">
             <button

@@ -1,5 +1,7 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom';
+import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { useEffect, useRef } from 'react';
+import { syncLabel, useSyncStatus } from '../sync/controller';
+import { Monogram } from '../components/Monogram';
 
 const TABS = [
   { to: '/log', label: 'Log a visit', short: 'Log', icon: 'M12 5v14M5 12h14' },
@@ -39,9 +41,11 @@ export function Layout() {
       <header className="top">
         <div className="wrap">
           <div className="brand">
-            <h1>Chair Log</h1>
-            <span>De-identified injector book of business</span>
+            <Monogram size={34} />
+            <h1 className="wordmark">Aurelle</h1>
+            <span className="tagline">Book of business</span>
           </div>
+          <SyncChip />
           <nav className="tabs" aria-label="Pages">
             {TABS.map((t) => (
               <NavLink
@@ -84,5 +88,22 @@ export function Layout() {
         ))}
       </nav>
     </>
+  );
+}
+
+/** Small sync status in the header; hidden when this device isn't signed in. */
+function SyncChip() {
+  const s = useSyncStatus();
+  const label = syncLabel(s);
+  if (!s.email || !label) return null;
+  return (
+    <Link
+      className={`sync-chip ${s.phase}`}
+      to="/settings#sync"
+      aria-label={`Sync: ${label}. Open sync settings`}
+    >
+      <i aria-hidden="true" />
+      {label}
+    </Link>
   );
 }

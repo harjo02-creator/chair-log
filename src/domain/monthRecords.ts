@@ -25,6 +25,8 @@ export interface MonthRecord {
   /** True when the numbers are her estimates rather than counted from a booking system. */
   isEstimate: boolean;
   updatedAt: string;
+  /** Sync bookkeeping; see Visit.syncedAt. */
+  syncedAt?: string;
 }
 
 export type MonthCountKey =

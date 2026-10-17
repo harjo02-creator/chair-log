@@ -3,6 +3,7 @@ import { useData } from '../../app/data';
 import { eraseAllData } from '../../db/repo';
 import { verifyPin } from '../../domain/pin';
 import { ConfirmButton } from '../../components/ui';
+import { Monogram } from '../../components/Monogram';
 
 export const LOCK_EVENT = 'chairlog:lock';
 export const lockNow = () => window.dispatchEvent(new Event(LOCK_EVENT));
@@ -43,8 +44,9 @@ export function LockScreen({ onUnlock }: { onUnlock: () => void }) {
           void submit(pin);
         }}
       >
+        <Monogram size={56} />
         <div className="eyebrow">Locked</div>
-        <h1>Chair Log</h1>
+        <h1 className="wordmark">Aurelle</h1>
         <label htmlFor="pin">Enter your PIN</label>
         <input
           ref={input}

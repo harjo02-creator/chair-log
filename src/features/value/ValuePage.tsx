@@ -187,7 +187,7 @@ export function ValuePage() {
                 className="btn small"
                 onClick={() =>
                   downloadFile(
-                    `chair-log-monthly-${first}_to_${end}.csv`,
+                    `aurelle-monthly-${first}_to_${end}.csv`,
                     withBom(pointsToCsv(pts)),
                     'text/csv;charset=utf-8',
                   )
@@ -223,7 +223,7 @@ export function ValuePage() {
                 estimate={estimate}
                 series={[
                   { label: 'New', values: pts.map((p) => p.newClients), color: 's1' },
-                  { label: 'Returning', values: pts.map((p) => p.returningClients), color: 's3' },
+                  { label: 'Returning', values: pts.map((p) => p.returningClients), color: 's4' },
                 ]}
                 fmtAxis={String}
                 fmt={(v) => `${v} clients`}
@@ -263,7 +263,7 @@ export function ValuePage() {
                 themeKey={themeKey}
                 labels={labels}
                 series={[
-                  { label: 'Returning', values: pts.map(returningShare), color: 's3' },
+                  { label: 'Returning', values: pts.map(returningShare), color: 's4' },
                   { label: 'Rebooked', values: pts.map((p) => p.rebookRate), color: 's1' },
                 ]}
                 fmtAxis={(v) => pct(v)}

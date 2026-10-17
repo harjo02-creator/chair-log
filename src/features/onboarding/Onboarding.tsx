@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { loadSampleData, updateSettings } from '../../db/repo';
 import { PrivacyRules } from '../log/PrivacyRules';
+import { Monogram } from '../../components/Monogram';
+import { syncConfigured } from '../../sync/config';
 
 /** PRIV-7: one-time note that this is a personal record, not a medical record. */
 export function Onboarding() {
@@ -13,8 +15,9 @@ export function Onboarding() {
   return (
     <div className="center-screen">
       <div className="center-card panel">
-        <div className="eyebrow">Welcome</div>
-        <h1>Chair Log</h1>
+        <Monogram size={56} />
+        <div className="eyebrow">Welcome to</div>
+        <h1 className="wordmark">Aurelle</h1>
         <p>
           A private log of your own book of business: production, average ticket, retention, rebook rate and
           how much of your chair you fill yourself.
@@ -23,12 +26,14 @@ export function Onboarding() {
           <p>
             <b>This is a personal record, not a medical record.</b> Keep charting in the clinic's system.
             Before you keep a personal client log, check your employment agreement for rules about client
-            information. Chair Log does not give legal advice.
+            information. Aurelle does not give legal advice.
           </p>
         </div>
         <PrivacyRules />
         <p className="small muted">
-          Everything stays on this device. Nothing is sent anywhere unless you export it yourself.
+          {syncConfigured
+            ? 'Your log syncs to your private account, so it’s on every device you sign in on. Only people you invite can see it.'
+            : 'Everything stays on this device. Nothing is sent anywhere unless you export it yourself.'}
         </p>
         <div className="actions">
           <button type="button" className="btn primary" disabled={busy} onClick={() => start(false)}>

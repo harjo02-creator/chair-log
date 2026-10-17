@@ -658,7 +658,7 @@ export function GrowthSection(props: {
               values: trend.map((p) => dollars(p.avgTicket.FILLER)),
               color: 's2',
             },
-            { label: CATEGORY_LABEL.BIO, values: trend.map((p) => dollars(p.avgTicket.BIO)), color: 's3' },
+            { label: CATEGORY_LABEL.BIO, values: trend.map((p) => dollars(p.avgTicket.BIO)), color: 's4' },
           ]}
           fmtAxis={kfmt}
           fmt={(v) => money(v * 100)}
@@ -691,7 +691,7 @@ export function GrowthSection(props: {
               color: 'muted',
             },
             { label: 'Self-sourced', values: trend.map((p) => p.selfSourcedShare), color: 's1' },
-            { label: 'Referral', values: trend.map((p) => p.referralShare), color: 's3' },
+            { label: 'Referral', values: trend.map((p) => p.referralShare), color: 's4' },
           ]}
           fmtAxis={(v) => pct(v)}
           fmt={pct}

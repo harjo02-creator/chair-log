@@ -118,7 +118,7 @@ test('sample data, insights charts and CSV export', async ({ page }) => {
     page.waitForEvent('download'),
     period.getByRole('button', { name: 'Download CSV' }).click(),
   ]);
-  expect(dl.suggestedFilename()).toBe('chair-log-2026-09.csv');
+  expect(dl.suggestedFilename()).toBe('aurelle-2026-09.csv');
   const bytes = await page.evaluate(async () =>
     Array.from(new Uint8Array(await (window as unknown as { __lastBlob: Blob }).__lastBlob.arrayBuffer())),
   );

@@ -57,9 +57,17 @@ export interface Visit {
   isSample: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Sync bookkeeping: the updatedAt last confirmed by the shared log. Differs from updatedAt = unsynced. */
+  syncedAt?: string;
 }
 
-export interface Product {
+/** Sync bookkeeping carried by catalog items (they predate sync, so both are optional). */
+export interface SyncStamps {
+  updatedAt?: string;
+  syncedAt?: string;
+}
+
+export interface Product extends SyncStamps {
   id: string;
   name: string;
   unit: Unit;
@@ -71,7 +79,7 @@ export interface Product {
   excludeFromToxUnitAvg?: boolean;
 }
 
-export interface TreatmentArea {
+export interface TreatmentArea extends SyncStamps {
   id: string;
   name: string;
   category: Category;
@@ -80,7 +88,7 @@ export interface TreatmentArea {
   active: boolean;
 }
 
-export interface RetailItem {
+export interface RetailItem extends SyncStamps {
   id: string;
   name: string;
   defaultPriceCents: Cents;

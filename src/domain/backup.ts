@@ -42,7 +42,7 @@ export function makeBackup(
   };
 }
 
-export const backupFilename = (isoDate: string) => `chair-log-backup-${isoDate}.json`;
+export const backupFilename = (isoDate: string) => `aurelle-backup-${isoDate}.json`;
 
 export type ParseResult = { ok: true; backup: Backup } | { ok: false; error: string };
 
@@ -55,12 +55,12 @@ export function parseBackup(text: string, currentSchemaVersion: number): ParseRe
   try {
     data = JSON.parse(text);
   } catch {
-    return { ok: false, error: "This file isn't valid JSON. Choose a Chair Log backup file." };
+    return { ok: false, error: "This file isn't valid JSON. Choose an Aurelle backup file." };
   }
   if (!isObj(data) || data.app !== BACKUP_APP_ID)
-    return { ok: false, error: "This isn't a Chair Log backup file." };
+    return { ok: false, error: "This isn't an Aurelle backup file." };
   if (typeof data.schemaVersion !== 'number' || data.schemaVersion > currentSchemaVersion)
-    return { ok: false, error: 'This backup is from a newer version of Chair Log. Update the app first.' };
+    return { ok: false, error: 'This backup is from a newer version of Aurelle. Update the app first.' };
   if (!Array.isArray(data.visits)) return { ok: false, error: 'The backup has no visits list.' };
   const c = data.catalogs;
   if (!isObj(c) || !Array.isArray(c.products) || !Array.isArray(c.areas) || !Array.isArray(c.retail))

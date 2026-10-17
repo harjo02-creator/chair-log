@@ -5,6 +5,9 @@ import { ToastProvider } from './toast';
 import { applyTheme } from './theme';
 import { Layout } from './Layout';
 import { UpdatePrompt } from '../pwa/UpdatePrompt';
+import { requestSync, startSync, useSyncStatus } from '../sync/controller';
+import { syncConfigured } from '../sync/config';
+import { SignInScreen } from '../features/auth/SignInScreen';
 import { LogPage } from '../features/log/LogPage';
 import { HistoryPage } from '../features/history/HistoryPage';
 
@@ -34,27 +37,30 @@ export function App() {
       <UpdatePrompt />
       <DataProvider fallback={<div className="center-screen muted">Loading…</div>}>
         <ThemeSync />
-        <LockGate>
-          <OnboardingGate>
-            <HashRouter>
-              <Routes>
-                <Route element={<Layout />}>
-                  <Route path="/log" element={<LogPage />} />
-                  <Route path="/history" element={<HistoryPage />} />
-                  <Route path="/insights" element={page(<InsightsPage />)} />
-                  <Route path="/summary" element={<SummaryRedirect />} />
-                  <Route path="/value" element={page(<ValuePage />)} />
-                  <Route path="/months" element={page(<MonthsPage />)} />
-                  <Route path="/report" element={page(<ReportPage />)} />
-                  <Route path="/clients" element={<ClientsPage />} />
-                  <Route path="/clients/:clientId" element={<ClientPage />} />
-                  <Route path="/settings" element={page(<SettingsPage />)} />
-                  <Route path="*" element={<Navigate to="/log" replace />} />
-                </Route>
-              </Routes>
-            </HashRouter>
-          </OnboardingGate>
-        </LockGate>
+        <SyncDriver />
+        <AuthGate>
+          <LockGate>
+            <OnboardingGate>
+              <HashRouter>
+                <Routes>
+                  <Route element={<Layout />}>
+                    <Route path="/log" element={<LogPage />} />
+                    <Route path="/history" element={<HistoryPage />} />
+                    <Route path="/insights" element={page(<InsightsPage />)} />
+                    <Route path="/summary" element={<SummaryRedirect />} />
+                    <Route path="/value" element={page(<ValuePage />)} />
+                    <Route path="/months" element={page(<MonthsPage />)} />
+                    <Route path="/report" element={page(<ReportPage />)} />
+                    <Route path="/clients" element={<ClientsPage />} />
+                    <Route path="/clients/:clientId" element={<ClientPage />} />
+                    <Route path="/settings" element={page(<SettingsPage />)} />
+                    <Route path="*" element={<Navigate to="/log" replace />} />
+                  </Route>
+                </Routes>
+              </HashRouter>
+            </OnboardingGate>
+          </LockGate>
+        </AuthGate>
       </DataProvider>
     </ToastProvider>
   );
@@ -64,6 +70,29 @@ export function App() {
 function SummaryRedirect() {
   const { search } = useLocation();
   return <Navigate to={`/insights${search}`} replace />;
+}
+
+/** Starts background sync (when this build has a Supabase project) and nudges it after edits. */
+function SyncDriver() {
+  const { visits, catalogs, monthRecords, goals } = useData();
+  useEffect(() => startSync(), []);
+  useEffect(
+    () => requestSync(),
+    [visits, catalogs.products, catalogs.areas, catalogs.retail, monthRecords, goals],
+  );
+  return null;
+}
+
+/**
+ * With a Supabase project, Google sign-in comes first. The session is saved on the device, so this
+ * screen shows once per device; later launches (online or not) go straight in.
+ */
+function AuthGate({ children }: { children: ReactNode }) {
+  const s = useSyncStatus();
+  if (!syncConfigured) return <>{children}</>;
+  if (!s.authChecked) return <div className="center-screen muted">Loading…</div>;
+  if (!s.email) return <SignInScreen />;
+  return <>{children}</>;
 }
 
 function ThemeSync() {

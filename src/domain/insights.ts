@@ -353,6 +353,8 @@ export interface Goal {
   /** Cents for money goals, a count, or a 0..1 ratio for rates. */
   target: number;
   updatedAt: string;
+  /** Sync bookkeeping; see Visit.syncedAt. */
+  syncedAt?: string;
 }
 
 export const GOAL_META: Record<GoalMetric, { label: string; kind: 'money' | 'count' | 'ratio' }> = {

@@ -35,7 +35,7 @@ export function LockSection() {
       <h2 id="lock-title">App lock</h2>
       <p className="small">
         {has
-          ? `Chair Log asks for your PIN when it opens and after ${settings.autoLockMinutes} minutes in the background.`
+          ? `Aurelle asks for your PIN when it opens and after ${settings.autoLockMinutes} minutes in the background.`
           : 'Set a 4–6 digit PIN so the log is hidden if your phone is handed around.'}{' '}
         The PIN can't be recovered. If you forget it, the only way back in is to erase the data on this device
         and restore a backup.

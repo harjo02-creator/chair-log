@@ -25,7 +25,7 @@ export function PeriodSection({ themeKey }: { themeKey: string }) {
       }),
     [visits, catalogs, p.period.range.start, p.period.range.end, p.rolling, settings.rollingRetentionMonths], // eslint-disable-line react-hooks/exhaustive-deps
   );
-  const csvName = `chair-log-${p.period.ym ?? `${p.period.range.start}_to_${p.period.range.end}`}.csv`;
+  const csvName = `aurelle-${p.period.ym ?? `${p.period.range.start}_to_${p.period.range.end}`}.csv`;
   const monthOnly = p.period.ym ? monthRecords.find((r) => r.month === p.period.ym) : undefined;
 
   return (

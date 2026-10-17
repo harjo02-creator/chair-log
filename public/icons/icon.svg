@@ -1,9 +1,19 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#7a3b63"/>
-  <g fill="none" stroke="#ffffff" stroke-linecap="round" stroke-linejoin="round" stroke-width="34">
-    <path d="M178 134 L218 296 L352 296 L392 352"/>
-    <path d="M264 296 L264 384"/>
-    <path d="M196 384 L332 384"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#f9f4f4"/>
+      <stop offset="0.45" stop-color="#f3eef0"/>
+      <stop offset="1" stop-color="#ebe7eb"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <g fill="none" stroke="#b89466">
+    <circle cx="256" cy="256" r="196" stroke-width="6"/>
+    <circle cx="256" cy="256" r="181" stroke-width="2"/>
   </g>
-  <circle cx="330" cy="168" r="30" fill="#f3e8ef"/>
+  <!-- A geometric sans "A": two even strokes meeting in a flat apex, and a crossbar. -->
+  <g fill="#84653a">
+    <polygon points="238,136 274,136 360,372 330,372 256,166 182,372 152,372"/>
+    <rect x="198" y="290" width="116" height="24"/>
+  </g>
 </svg>

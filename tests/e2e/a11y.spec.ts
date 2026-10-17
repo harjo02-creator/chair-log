@@ -6,7 +6,7 @@ for (const scheme of ['light', 'dark'] as const) {
   test(`no WCAG A/AA violations (${scheme})`, async ({ page }) => {
     await page.emulateMedia({ colorScheme: scheme });
     await page.goto('./');
-    await expect(page.getByRole('heading', { name: 'Chair Log' })).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Aurelle' })).toBeVisible();
     const check = async (where: string) => {
       const r = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22aa'])

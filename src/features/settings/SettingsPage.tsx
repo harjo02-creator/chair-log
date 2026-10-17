@@ -12,6 +12,8 @@ import { PrivacyRules } from '../log/PrivacyRules';
 import { CatalogEditor } from './CatalogEditor';
 import { DataSection } from './DataSection';
 import { GoalsSection } from './GoalsSection';
+import { SyncSection } from './SyncSection';
+import { useSyncStatus } from '../../sync/controller';
 import { LockSection } from './LockSection';
 
 export function SettingsPage() {
@@ -24,6 +26,8 @@ export function SettingsPage() {
   }, [visits.length]);
   const sampleCount = visits.filter((v) => v.isSample).length;
   const { hash } = useLocation();
+  const sync = useSyncStatus();
+  const shared = sync.email != null;
   // Links like /settings#goals land on that section.
   useEffect(() => {
     if (hash) document.getElementById(hash.slice(1))?.scrollIntoView();
@@ -36,15 +40,13 @@ export function SettingsPage() {
       <section className="panel" aria-labelledby="install-title">
         <h2 id="install-title">Install &amp; storage</h2>
         {isStandalone() ? (
-          <p className="small">✓ Installed. Chair Log runs from your home screen and works offline.</p>
+          <p className="small">✓ Installed. Aurelle runs from your home screen and works offline.</p>
         ) : canInstall ? (
           <div className="actions">
             <button type="button" className="btn primary" onClick={() => void promptInstall()}>
               Install app
             </button>
-            <span className="hint">
-              Adds Chair Log to your home screen or desktop. It works fully offline.
-            </span>
+            <span className="hint">Adds Aurelle to your home screen or desktop. It works fully offline.</span>
           </div>
         ) : isIOS() ? (
           <p className="small">
@@ -81,10 +83,14 @@ export function SettingsPage() {
         </div>
         <p className="hint">
           On iPhone and iPad, Safari can delete data for websites you haven't added to the Home Screen, often
-          after about a week without a visit. Install the app and keep regular backups. Your log exists only
-          on this device.
+          after about a week without a visit. Install the app and keep regular backups.
+          {shared
+            ? ' This device syncs with your shared log, so a cleared device gets everything back after you sign in.'
+            : ' Your log exists only on this device unless you sign in to sync.'}
         </p>
       </section>
+
+      <SyncSection />
 
       <GoalsSection />
 
@@ -165,16 +171,20 @@ export function SettingsPage() {
         <h2 id="privacy-title">Privacy</h2>
         <PrivacyRules />
         <p className="small">
-          Chair Log is a personal record, not a medical record. Check your employment agreement before keeping
-          a personal client log. It has no server, no analytics and no tracking: your visits never leave this
-          device unless you export or share them.
+          Aurelle is a personal record, not a medical record. Check your employment agreement before keeping a
+          personal client log. It has no analytics and no tracking.{' '}
+          {shared
+            ? 'Because you signed in, your de-identified visits, monthly totals, goals and price lists sync to this app’s private database, where only the people you added can read them.'
+            : 'Your visits never leave this device unless you sign in to sync, export or share them.'}
         </p>
       </section>
 
       <section className="panel" aria-labelledby="danger-title">
-        <h2 id="danger-title">Erase everything</h2>
+        <h2 id="danger-title">{shared ? 'Erase this device' : 'Erase everything'}</h2>
         <p className="small">
-          Deletes every visit, price change and setting on this device. Make a backup first.
+          {shared
+            ? 'Deletes this device’s copy of the log and its settings. The shared log keeps everything, and this device downloads it again while you stay signed in. To delete entries for everyone, delete them one by one.'
+            : 'Deletes every visit, price change and setting on this device. Make a backup first.'}
         </p>
         <div className="actions">
           <ConfirmButton
@@ -186,7 +196,7 @@ export function SettingsPage() {
       </section>
 
       <p className="hint">
-        Chair Log {__APP_VERSION__} · data format v{SCHEMA_VERSION}
+        Aurelle {__APP_VERSION__} · data format v{SCHEMA_VERSION}
       </p>
     </div>
   );

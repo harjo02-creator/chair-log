@@ -1,76 +1,102 @@
+/*
+ * Aurelle: soft pink-gray grounds, warm ink, a champagne-tan accent, hairline rules.
+ * Archivo (slightly expanded, semibold) for headings and the wordmark; DM Sans for everything read
+ * or counted.
+ */
 :root {
-  --bg: #f6f5f8;
+  /* A faint pink-gray gradation sits behind every screen; --bg is its average, for solid fills. */
+  --bg: #fbfafa;
+  --bg-grad: linear-gradient(165deg, #fdfcfc 0%, #fbfafa 45%, #f9f8f9 100%);
   --surface: #ffffff;
-  --sunken: #efedf2;
-  --ink: #1d1a22;
-  --muted: #625c6b;
-  --line: #e2dee7;
-  --line-strong: #8d8696;
-  --accent: #7a3b63;
+  --sunken: #f2edef;
+  --ink: #26211f;
+  --muted: #6b6366;
+  --line: #e8e1e4;
+  --line-strong: #8f868a;
+  /* Champagne: --accent for text and links (about 4.8:1 here); --gold decorative; --cta for buttons. */
+  --accent: #84653a;
   --accent-ink: #ffffff;
-  --accent-soft: #f3e8ef;
-  --good: #1d7346;
-  --good-soft: #e3f2e9;
-  --warn: #8a5000;
-  --warn-soft: #fbf0dc;
-  --danger: #a3262a;
-  --s1: #2a78d6;
-  --s2: #eb6834;
-  --s3: #1baf7a;
-  --s4: #8e5cd9;
-  --f-display: 'Young Serif', Georgia, 'Times New Roman', serif;
-  --f-body: 'Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --f-mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+  --accent-soft: #f5ede3;
+  --gold: #b89466;
+  --cta: #c9ad80;
+  --cta-ink: #26211f;
+  --good: #2e6b4f;
+  --good-soft: #e4efe8;
+  --warn: #8a5a12;
+  --warn-soft: #f7eedc;
+  --danger: #a3333a;
+  /* Chart series, validated for colour-blind separation in this order (adjacent pairs). */
+  --s1: #3f6fb8;
+  --s2: #c07a2c;
+  --s3: #b16cb3;
+  --s4: #2f9a6a;
+  --f-display: 'Archivo Variable', 'Archivo', 'Helvetica Neue', Arial, sans-serif;
+  --f-body: 'DM Sans Variable', 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* Figures use the body face with tabular numerals; kept as a token so numeric styles stay grouped. */
+  --f-mono: 'DM Sans Variable', 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --display-stretch: 112%;
   --r: 10px;
+  --r-card: 12px;
   --tap: 44px;
   --tabbar-h: 64px;
+  --shadow: 0 1px 2px rgba(60, 40, 48, 0.04), 0 10px 28px -14px rgba(60, 40, 48, 0.12);
   color-scheme: light;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg: #141217;
-    --surface: #1d1a21;
-    --sunken: #18161b;
-    --ink: #f0edf3;
-    --muted: #a8a1b0;
-    --line: #322d39;
-    --line-strong: #6d6576;
-    --accent: #d68fbd;
-    --accent-ink: #1d1a22;
-    --accent-soft: #3a2433;
-    --good: #5cc98d;
-    --good-soft: #1a3326;
-    --warn: #e2a64a;
-    --warn-soft: #3a2c14;
-    --danger: #ff8a8a;
-    --s1: #3987e5;
-    --s2: #d95926;
-    --s3: #199e70;
-    --s4: #9d6be6;
+    --bg: #2a2528;
+    --bg-grad: linear-gradient(165deg, #342d30 0%, #2b2629 50%, #252124 100%);
+    --surface: #363033;
+    --sunken: #2f2a2d;
+    --ink: #f4eff1;
+    --muted: #bcb2b6;
+    --line: #4a4246;
+    --line-strong: #7f7579;
+    --accent: #dcc094;
+    --accent-ink: #26211f;
+    --accent-soft: #463b31;
+    --gold: #cfb07c;
+    --cta: #cfb385;
+    --cta-ink: #26211f;
+    --good: #8fd0aa;
+    --good-soft: #2b4034;
+    --warn: #ecc072;
+    --warn-soft: #4a3c22;
+    --danger: #ffa3a3;
+    --s1: #5a8fdc;
+    --s2: #c48033;
+    --s3: #ba77bc;
+    --s4: #38a87a;
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 28px -14px rgba(0, 0, 0, 0.35);
     color-scheme: dark;
   }
 }
 
 :root[data-theme='dark'] {
-  --bg: #141217;
-  --surface: #1d1a21;
-  --sunken: #18161b;
-  --ink: #f0edf3;
-  --muted: #a8a1b0;
-  --line: #322d39;
-  --line-strong: #6d6576;
-  --accent: #d68fbd;
-  --accent-ink: #1d1a22;
-  --accent-soft: #3a2433;
-  --good: #5cc98d;
-  --good-soft: #1a3326;
-  --warn: #e2a64a;
-  --warn-soft: #3a2c14;
-  --danger: #ff8a8a;
-  --s1: #3987e5;
-  --s2: #d95926;
-  --s3: #199e70;
-  --s4: #9d6be6;
+  --bg: #2a2528;
+  --bg-grad: linear-gradient(165deg, #342d30 0%, #2b2629 50%, #252124 100%);
+  --surface: #363033;
+  --sunken: #2f2a2d;
+  --ink: #f4eff1;
+  --muted: #bcb2b6;
+  --line: #4a4246;
+  --line-strong: #7f7579;
+  --accent: #dcc094;
+  --accent-ink: #26211f;
+  --accent-soft: #463b31;
+  --gold: #cfb07c;
+  --cta: #cfb385;
+  --cta-ink: #26211f;
+  --good: #8fd0aa;
+  --good-soft: #2b4034;
+  --warn: #ecc072;
+  --warn-soft: #4a3c22;
+  --danger: #ffa3a3;
+  --s1: #5a8fdc;
+  --s2: #c48033;
+  --s3: #ba77bc;
+  --s4: #38a87a;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.18), 0 10px 28px -14px rgba(0, 0, 0, 0.35);
   color-scheme: dark;
 }

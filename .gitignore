@@ -8,3 +8,8 @@ test-results/
 # Never commit real data exports
 chair-log-backup-*.json
 chair-log-*.csv
+# Local Supabase settings
+.env.local
+.env.*.local
+aurelle-backup-*.json
+aurelle-*.csv
