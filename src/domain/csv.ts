@@ -30,7 +30,11 @@ export const CSV_COLUMNS = [
   'Est. Ticket Gross',
   'Rebooked',
   'Treatment Interval (Days)',
+  'Estimated',
 ] as const;
+
+/** Every column but Estimated must be present on import; older exports don't have it. */
+const REQUIRED_COLUMNS = CSV_COLUMNS.filter((c) => c !== 'Estimated');
 
 export function csvField(value: string): string {
   return /[",\r\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
@@ -53,6 +57,7 @@ export function visitToRow(v: Visit, catalogs: Catalogs): string[] {
     dollarsPlain(v.serviceGrossCents),
     v.rebooked ? `Yes (${v.rebookDays} days)` : 'No',
     v.intervalDays == null ? '' : String(v.intervalDays),
+    v.estimated ? 'Yes' : '',
   ];
 }
 
@@ -177,6 +182,11 @@ const UNIT_BY_TEXT: Record<string, Unit> = {
   syr: 'syr',
   syringe: 'syr',
   syringes: 'syr',
+  tx: 'tx',
+  treatment: 'tx',
+  treatments: 'tx',
+  session: 'tx',
+  sessions: 'tx',
 };
 
 /** "Botox 36u" / "Restylane Kysse 1.0mL" / "Sculptra 2 vial" → product line at catalog price. */
@@ -207,7 +217,7 @@ export function importCsv(
   const rows = parseCsv(text);
   const header = (rows[0] ?? []).map(norm);
   const idx = CSV_COLUMNS.map((c) => header.indexOf(norm(c)));
-  const missing = CSV_COLUMNS.filter((_, i) => idx[i] === -1);
+  const missing = REQUIRED_COLUMNS.filter((c) => idx[CSV_COLUMNS.indexOf(c)] === -1);
   if (!rows.length || missing.length)
     return {
       rows: [],
@@ -287,6 +297,8 @@ export function importCsv(
     const intervalDays = iv === '' ? null : /^\d+$/.test(iv) ? Number(iv) : NaN;
     if (Number.isNaN(intervalDays)) errors.push(`Interval "${iv}" should be a whole number of days.`);
 
+    const estimated = /^(yes|y|true|1)$/i.test(get(11));
+
     const base = { line: i + 2, clientId: id.value, date: date ?? get(0) };
     if (errors.length) return { ...base, ok: false, errors, warnings };
 
@@ -305,6 +317,7 @@ export function importCsv(
       rebookDays,
       intervalDays: intervalDays as number | null,
       isSample: false,
+      ...(estimated ? { estimated: true } : {}),
       createdAt: opts.now,
       updatedAt: opts.now,
     };

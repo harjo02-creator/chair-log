@@ -126,7 +126,7 @@ test('sample data, insights charts and CSV export', async ({ page }) => {
   expect(bytes.slice(0, 3)).toEqual([0xef, 0xbb, 0xbf]);
   const text = Buffer.from(bytes.slice(3)).toString('utf8');
   expect(text.split('\r\n')[0]).toBe(
-    'Date,Client ID,Visit Type,Source,Primary Treatment Area,Product & Quantity,Retail Add-on,Retail $,Est. Ticket Gross,Rebooked,Treatment Interval (Days)',
+    'Date,Client ID,Visit Type,Source,Primary Treatment Area,Product & Quantity,Retail Add-on,Retail $,Est. Ticket Gross,Rebooked,Treatment Interval (Days),Estimated',
   );
 
   await gotoTab(page, 'Value');

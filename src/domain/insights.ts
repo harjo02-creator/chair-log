@@ -105,6 +105,7 @@ export const DUE_WINDOWS: Record<Category, { min: number; max: number }> = {
   TOX: { min: 90, max: 120 },
   FILLER: { min: 270, max: 365 },
   BIO: { min: 35, max: 56 },
+  OTHER: { min: 28, max: 56 },
 };
 /** Past the window by more than this, a client counts as lapsed rather than overdue. */
 const LAPSED_AFTER_DAYS = 90;
@@ -484,18 +485,19 @@ export function buildRecommendations(input: RecInput): Recommendation[] {
   const m = computeMetrics(V, catalogs);
   const perVisit = m.n ? m.grossCents / m.n : null;
   const recs: Recommendation[] = [];
-  const enough = m.n >= T.minVisits;
+  // Rates need visits where rebook, source and retail were recorded (not estimated ones).
+  const enough = m.rated >= T.minVisits;
 
   // Retention: rebook at checkout.
   if (enough && m.rebookRate != null) {
     if (m.rebookRate < T.rebookTarget) {
-      const more = Math.ceil((T.rebookTarget - m.rebookRate) * m.n);
+      const more = Math.ceil((T.rebookTarget - m.rebookRate) * m.rated);
       recs.push({
         id: 'rebook',
         area: 'retention',
         tone: 'act',
         title: 'Book the next visit before the client leaves',
-        finding: `${pct(m.rebookRate)} of visits in the last 90 days rebooked at checkout (${m.rebookedCount} of ${m.n}).`,
+        finding: `${pct(m.rebookRate)} of visits in the last 90 days rebooked at checkout (${m.rebookedCount} of ${m.rated}).`,
         action: `Offer a date before checkout: tox at 12–14 weeks, filler at 9–12 months. Reaching ${pct(T.rebookTarget)} means about ${more} more booked visits a quarter.`,
         impactCents: perVisit == null ? null : Math.round(more * perVisit * 4),
         impactLabel: 'a year',
@@ -507,7 +509,7 @@ export function buildRecommendations(input: RecInput): Recommendation[] {
         area: 'retention',
         tone: 'strength',
         title: `Rebook rate is strong at ${pct(m.rebookRate)}`,
-        finding: `${m.rebookedCount} of ${m.n} visits in the last 90 days booked their next appointment at checkout.`,
+        finding: `${m.rebookedCount} of ${m.rated} visits in the last 90 days booked their next appointment at checkout.`,
         action: 'Lead with this number with employers: it shows clients commit to coming back to you.',
         impactCents: null,
         impactLabel: 'at stake',
@@ -561,7 +563,7 @@ export function buildRecommendations(input: RecInput): Recommendation[] {
 
   // Revenue: retail attach.
   if (enough && m.retailConversion != null && m.retailConversion < T.retailTarget) {
-    const more = Math.ceil((T.retailTarget - m.retailConversion) * m.n);
+    const more = Math.ceil((T.retailTarget - m.retailConversion) * m.rated);
     const avgItem = m.retailCount
       ? m.retailCents / m.retailCount
       : catalogs.retail.reduce((s, r) => s + r.defaultPriceCents, 0) / Math.max(1, catalogs.retail.length);
@@ -570,7 +572,7 @@ export function buildRecommendations(input: RecInput): Recommendation[] {
       area: 'revenue',
       tone: 'act',
       title: 'Pair each treatment with one skincare product',
-      finding: `${pct(m.retailConversion)} of visits in the last 90 days included retail (${m.retailCount} of ${m.n}).`,
+      finding: `${pct(m.retailConversion)} of visits in the last 90 days included retail (${m.retailCount} of ${m.rated}).`,
       action: `Recommend one aftercare or maintenance product per visit. At ${pct(T.retailTarget)}, that's about ${more} more sales a quarter.`,
       impactCents: Math.round(more * avgItem * 4),
       impactLabel: 'a year',

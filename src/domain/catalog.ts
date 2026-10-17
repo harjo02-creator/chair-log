@@ -31,6 +31,17 @@ export const DEFAULT_PRODUCTS: Product[] = [
   p('restylane-eyelight', 'Restylane Eyelight', 'mL', 750, 'FILLER', 0.1),
   p('sculptra', 'Sculptra', 'vial', 900, 'BIO', 1),
   p('radiesse', 'Radiesse', 'syr', 850, 'BIO', 1),
+  // Other services: list prices are placeholders to adjust in Settings.
+  p('aerolase', 'Aerolase laser', 'tx', 300, 'OTHER', 1),
+  p('laser-hair', 'Laser hair removal', 'tx', 200, 'OTHER', 1),
+  p('laser-hair-large', 'Laser hair removal, large area', 'tx', 350, 'OTHER', 1),
+  p('microneedling', 'Microneedling', 'tx', 350, 'OTHER', 1),
+  p('rf-microneedling', 'RF microneedling', 'tx', 900, 'OTHER', 1),
+  p('dermaplane', 'Dermaplane', 'tx', 75, 'OTHER', 1),
+  p('diamondglow', 'DiamondGlow facial', 'tx', 200, 'OTHER', 1),
+  p('celluma', 'Celluma LED', 'tx', 80, 'OTHER', 1),
+  p('filler-dissolve', 'Filler dissolve', 'tx', 300, 'OTHER', 1),
+  p('consultation', 'Consultation', 'tx', 0, 'OTHER', 1),
 ];
 
 const a = (
@@ -57,6 +68,13 @@ export const DEFAULT_AREAS: TreatmentArea[] = [
   a('chin-jaw-filler', 'Chin & Jawline Filler', 'FILLER', 'rha-4', 2),
   a('tear-trough-filler', 'Tear Trough Filler', 'FILLER', 'restylane-eyelight', 1),
   a('biostimulator', 'Biostimulator', 'BIO', 'sculptra', 2),
+  a('aerolase-laser', 'Aerolase Laser', 'OTHER', 'aerolase', 1),
+  a('laser-hair-removal', 'Laser Hair Removal', 'OTHER', 'laser-hair', 1),
+  a('microneedling-area', 'Microneedling', 'OTHER', 'microneedling', 1),
+  a('facial', 'Facial / Dermaplane', 'OTHER', 'dermaplane', 1),
+  a('celluma-led', 'Celluma LED', 'OTHER', 'celluma', 1),
+  a('filler-dissolve-area', 'Filler Dissolve', 'OTHER', 'filler-dissolve', 1),
+  a('consultation-area', 'Consultation', 'OTHER', 'consultation', 1),
 ];
 
 const r = (id: string, name: string, dollars: number): RetailItem => ({

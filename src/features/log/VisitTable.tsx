@@ -63,6 +63,15 @@ export function VisitTable(props: {
                     sample
                   </span>
                 )}
+                {v.estimated && (
+                  <span
+                    className="chip"
+                    style={{ marginLeft: 6 }}
+                    title="From the booking calendar: products and prices are estimates. Open and save it to confirm."
+                  >
+                    est.
+                  </span>
+                )}
               </td>
               <td>
                 <Link className="client-link" to={`/clients/${encodeURIComponent(v.clientId)}`}>

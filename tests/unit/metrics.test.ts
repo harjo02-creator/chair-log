@@ -185,3 +185,20 @@ describe('months', () => {
     expect(delta(null, 0.5, 'ratio')).toBeNull();
   });
 });
+
+describe('estimated visits', () => {
+  it('count toward volume and billing but not the recorded-only rates', () => {
+    const V = filterRange(SEPTEMBER_VISITS, SEP);
+    const withCalendar = [
+      ...V,
+      ...V.slice(0, 4).map((v, i) => ({ ...v, uid: `est-${i}`, estimated: true, rebooked: false })),
+    ];
+    const m = computeMetrics(withCalendar, C);
+    expect(m.n).toBe(EXPECTED.n + 4);
+    expect(m.rated).toBe(EXPECTED.n);
+    expect(m.rebookRate).toBe(EXPECTED.rebookRate);
+    expect(m.independence).toBe(EXPECTED.independence);
+    expect(m.retailConversion).toBe(EXPECTED.retailConversion);
+    expect(sourceCounts(withCalendar).reduce((s, x) => s + x.count, 0)).toBe(EXPECTED.n);
+  });
+});

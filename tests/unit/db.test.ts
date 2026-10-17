@@ -32,8 +32,8 @@ const kpis = async () => {
 describe('database', () => {
   it('seeds catalogs and settings on first open', async () => {
     const c = await getCatalogs(d);
-    expect(c.products).toHaveLength(11);
-    expect(c.areas).toHaveLength(8);
+    expect(c.products).toHaveLength(21);
+    expect(c.areas).toHaveLength(15);
     expect(c.retail).toHaveLength(5);
     expect((await d.settings.get('settings'))?.rollingRetentionMonths).toBe(6);
   });

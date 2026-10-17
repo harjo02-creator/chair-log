@@ -29,6 +29,7 @@ export function dollarsPlain(cents: Cents): string {
 export function fmtQty(qty: number, unit: Unit): string {
   if (unit === 'u') return `${round1(qty)}u`;
   if (unit === 'mL') return `${qty.toFixed(1)}mL`;
+  if (unit === 'tx') return `${round1(qty)} tx`;
   return `${round1(qty)} ${unit}`;
 }
 

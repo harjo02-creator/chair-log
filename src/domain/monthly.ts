@@ -1,6 +1,8 @@
 /**
  * One row per month, combining logged visits with monthly totals. A month with logged visits uses
- * the visits; a month without uses its monthly record and is marked as an estimate. Days out and
+ * the visits; a month without uses its monthly record and is marked as an estimate. When a month
+ * has both and her monthly total counts more appointments than were logged (the logged ones being
+ * part of her total), her count wins and the visits' billing is scaled up to it. Days out and
  * models only exist on monthly records, so they always come from there.
  */
 import { areaCategory } from './catalog';
@@ -17,6 +19,8 @@ export interface MonthPoint {
   ym: YearMonth;
   label: string;
   source: MonthSource;
+  /** Visits logged for the month (0 when it's monthly totals only). */
+  loggedVisits: number;
   appointments: number | null;
   newClients: number | null;
   returningClients: number | null;
@@ -53,12 +57,41 @@ export function monthPoint(
 ): MonthPoint {
   const V = filterRange(visits, monthRange(ym));
   const rec = records.find((r) => r.month === ym) ?? null;
-  const base = { ym, label: monthShort(ym), daysOut: rec?.daysOut ?? null, models: rec?.models ?? null };
+  const base = {
+    ym,
+    label: monthShort(ym),
+    loggedVisits: V.length,
+    daysOut: rec?.daysOut ?? null,
+    models: rec?.models ?? null,
+  };
 
   if (V.length) {
     const m = computeMetrics(V, catalogs);
     const kinds = { tox: 0, filler: 0, combo: 0, other: 0 };
     for (const v of V) kinds[visitKind(v, catalogs)]++;
+    const total = rec?.appointments ?? null;
+    if (rec && total != null && total > m.n) {
+      // Her monthly total covers these visits and more: keep her count; where she didn't enter
+      // revenue, apply the visits' average ticket to all of it.
+      const scale = total / m.n;
+      const serviceCents = rec.serviceCents ?? Math.round(m.serviceCents * scale);
+      const retailCents = rec.retailCents ?? Math.round(m.retailCents * scale);
+      return {
+        ...base,
+        source: 'estimate',
+        appointments: total,
+        newClients: rec.newClients ?? m.newClients,
+        returningClients: rec.returningClients ?? m.returningClients,
+        tox: rec.botox ?? kinds.tox,
+        filler: rec.filler ?? kinds.filler,
+        combo: rec.combo ?? kinds.combo,
+        other: rec.other ?? kinds.other,
+        serviceCents,
+        retailCents,
+        grossCents: serviceCents + retailCents,
+        rebookRate: m.rebookRate,
+      };
+    }
     return {
       ...base,
       source: 'visits',

@@ -14,25 +14,25 @@ describe('CSV export (DATA-1, acceptance 8)', () => {
 
   it('has exactly the spec columns', () => {
     expect(lines[0]).toBe(
-      'Date,Client ID,Visit Type,Source,Primary Treatment Area,Product & Quantity,Retail Add-on,Retail $,Est. Ticket Gross,Rebooked,Treatment Interval (Days)',
+      'Date,Client ID,Visit Type,Source,Primary Treatment Area,Product & Quantity,Retail Add-on,Retail $,Est. Ticket Gross,Rebooked,Treatment Interval (Days),Estimated',
     );
     expect(parseCsv(csv)[0]).toEqual([...CSV_COLUMNS]);
   });
 
   it('formats products, money, rebook and interval', () => {
     expect(lines[1]).toBe(
-      '2026-09-02,AB-01,New Consult,Clinic Lead,Upper Face Tox,Botox 36u,,,468,Yes (90 days),',
+      '2026-09-02,AB-01,New Consult,Clinic Lead,Upper Face Tox,Botox 36u,,,468,Yes (90 days),,',
     );
     expect(lines[2]).toBe(
-      '2026-09-02,CD-01,Repeat,Self-Sourced,Upper Face Tox,Botox 40u,Growth Factor Serum,180,520,Yes (90 days),95',
+      '2026-09-02,CD-01,Repeat,Self-Sourced,Upper Face Tox,Botox 40u,Growth Factor Serum,180,520,Yes (90 days),95,',
     );
     expect(lines[10]).toBe(
-      '2026-09-30,RS-01,Repeat,Self-Sourced,Upper Face Tox,Botox 36u; Restylane Kysse 1.0mL,,,1218,Yes (90 days),110',
+      '2026-09-30,RS-01,Repeat,Self-Sourced,Upper Face Tox,Botox 36u; Restylane Kysse 1.0mL,,,1218,Yes (90 days),110,',
     );
     expect(lines).toContain(
-      '2026-09-12,JK-01,New Consult,Clinic Lead,Biostimulator,Sculptra 2 vial,Tinted Mineral SPF 46,58,1800,Yes (42 days),',
+      '2026-09-12,JK-01,New Consult,Clinic Lead,Biostimulator,Sculptra 2 vial,Tinted Mineral SPF 46,58,1800,Yes (42 days),,',
     );
-    expect(lines).toContain('2026-09-12,GH-01,Repeat,Clinic Lead,Upper Face Tox,Dysport 60u,,,270,No,130');
+    expect(lines).toContain('2026-09-12,GH-01,Repeat,Clinic Lead,Upper Face Tox,Dysport 60u,,,270,No,130,');
   });
 
   it('quotes per RFC 4180', () => {
@@ -99,5 +99,32 @@ describe('CSV import (DATA-4)', () => {
     expect(importCsv('Name,Phone\nJane,555', C, opts).headerError).toMatch(
       /^Missing columns: Date, Client ID/,
     );
+  });
+});
+
+describe('Estimated column', () => {
+  const header = CSV_COLUMNS.join(',');
+  const row = '2026-09-02,AB-01,New Consult,Clinic Lead,Upper Face Tox,Botox 36u,,,,No,';
+  it('flags visits marked Yes and is optional', () => {
+    let n = 0;
+    const opts = { now: '2026-10-17T00:00:00Z', newId: () => `e${++n}` };
+    const flagged = importCsv(
+      `${header}
+${row},Yes
+`,
+      DEFAULT_CATALOGS,
+      opts,
+    );
+    expect(flagged.rows[0]!.visit!.estimated).toBe(true);
+    const oldHeader = CSV_COLUMNS.filter((c) => c !== 'Estimated').join(',');
+    const old = importCsv(
+      `${oldHeader}
+${row}
+`,
+      DEFAULT_CATALOGS,
+      opts,
+    );
+    expect(old.headerError).toBeNull();
+    expect(old.rows[0]!.visit!.estimated).toBeUndefined();
   });
 });

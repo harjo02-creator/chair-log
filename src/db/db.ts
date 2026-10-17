@@ -5,7 +5,7 @@ import type { MonthRecord } from '../domain/monthRecords';
 import type { Product, RetailItem, Settings, TreatmentArea, Visit } from '../domain/types';
 
 /** Bump together with a new `db.version(n)` block and its upgrade function. */
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 /** Tables shared through sync, by their local name. */
 export type SyncTable = 'visits' | 'products' | 'areas' | 'retail' | 'monthRecords' | 'goals';
@@ -67,6 +67,17 @@ export class ChairLogDB extends Dexie {
     this.version(3).stores({
       tombstones: 'key, table',
       syncState: 'id',
+    });
+    // v4: "Other services" (laser, facials, microneedling, consults). Adds the new default products
+    // and treatment areas to existing price lists without touching anything already there.
+    this.version(4).upgrade(async (tx) => {
+      for (const [table, items] of [
+        ['products', DEFAULT_CATALOGS.products],
+        ['areas', DEFAULT_CATALOGS.areas],
+      ] as const) {
+        const have = new Set(await tx.table(table).toCollection().primaryKeys());
+        await tx.table(table).bulkAdd(items.filter((x) => !have.has(x.id)));
+      }
     });
     this.on('populate', (tx) => {
       tx.table('products').bulkAdd(DEFAULT_CATALOGS.products);

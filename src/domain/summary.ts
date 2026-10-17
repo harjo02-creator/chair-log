@@ -157,7 +157,7 @@ export function buildSummary(
       key: 'rebook',
       label: 'Rebook rate',
       value: pct(m.rebookRate),
-      sub: `${m.rebookedCount} of ${m.n} rebooked at checkout`,
+      sub: `${m.rebookedCount} of ${m.rated} rebooked at checkout`,
       chip: rebookChip(m.rebookRate),
       delta: d(m.rebookRate, prev?.rebookRate, 'ratio'),
     },

@@ -110,17 +110,17 @@ export function MathSection({ s }: { s: SummaryModel }) {
         <Formula
           title="Point-of-sale rebook rate"
           nl="Visits with rebook = Yes"
-          dl="Completed appointments"
+          dl="Visits with rebook recorded"
           num={String(m.rebookedCount)}
-          den={String(m.n)}
+          den={String(m.rated)}
           res={pct(m.rebookRate)}
         />
         <Formula
           title="Book independence ratio"
           nl="Self-sourced + referral visits"
-          dl="Total visits"
+          dl="Visits with source recorded"
           num={String(m.independentCount)}
-          den={String(m.n)}
+          den={String(m.rated)}
           res={pct(m.independence)}
           bench="A high ratio shows clients seek out her technique, not just clinic walk-ins."
         />

@@ -99,7 +99,7 @@ describe('validateMonthRecord', () => {
 
 describe('monthPoint', () => {
   const recs = importMonthCsv(HAND_SHEET, { now: NOW, today: TODAY }).rows.map((x) => x.record!);
-  const sepRecord = { ...emptyMonthRecord('2026-09', NOW), appointments: 99, daysOut: 3, models: 1 };
+  const sepRecord = { ...emptyMonthRecord('2026-09', NOW), daysOut: 3, models: 1 };
 
   it('uses logged visits when a month has them, and days out from the monthly record', () => {
     const p = monthPoint('2026-09', SEPTEMBER_VISITS, [sepRecord], C);
@@ -109,6 +109,30 @@ describe('monthPoint', () => {
     expect(p.models).toBe(1);
     expect(p.rebookRate).not.toBeNull();
     expect((p.tox ?? 0) + (p.filler ?? 0) + (p.combo ?? 0) + (p.other ?? 0)).toBe(p.appointments);
+  });
+
+  it('merges visits into a larger monthly total: her count wins, billing scales to it', () => {
+    const rec = { ...emptyMonthRecord('2026-09', NOW), appointments: 20, daysOut: 2 };
+    const p = monthPoint('2026-09', SEPTEMBER_VISITS, [rec], C);
+    // 10 hand-checked visits, $8,516 service + $358 retail, inside her 20.
+    expect(p).toMatchObject({ source: 'estimate', loggedVisits: 10, appointments: 20, daysOut: 2 });
+    expect(p.serviceCents).toBe(1_703_200);
+    expect(p.retailCents).toBe(71_600);
+    expect(p.grossCents).toBe(1_774_800);
+    expect(p.rebookRate).toBe(0.7);
+  });
+
+  it('keeps revenue she entered when merging', () => {
+    const rec = { ...emptyMonthRecord('2026-09', NOW), appointments: 20, serviceCents: 1_000_000 };
+    expect(monthPoint('2026-09', SEPTEMBER_VISITS, [rec], C).serviceCents).toBe(1_000_000);
+  });
+
+  it('uses the visits when they cover at least her monthly count', () => {
+    const rec = { ...emptyMonthRecord('2026-09', NOW), appointments: 8 };
+    expect(monthPoint('2026-09', SEPTEMBER_VISITS, [rec], C)).toMatchObject({
+      source: 'visits',
+      appointments: 10,
+    });
   });
 
   it('falls back to the monthly record as an estimate', () => {

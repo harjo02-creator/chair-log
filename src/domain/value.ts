@@ -74,11 +74,12 @@ export function buildValue(
 ): ValueModel {
   const range = rollingRange(endYm, months);
   const points = monthSeries(endYm, months, visits, records, catalogs);
-  const visitMonths = new Set(points.filter((p) => p.source === 'visits').map((p) => p.ym));
-  const V = filterRange(visits, range).filter((v) => visitMonths.has(v.date.slice(0, 7)));
-  const est = points.filter((p) => p.source === 'estimate');
+  // Every logged visit counts, including those in months whose totals come from her estimate;
+  // `est` is the months that are estimates only, with no visits to count clients from.
+  const V = filterRange(visits, range);
+  const est = points.filter((p) => p.source === 'estimate' && p.loggedVisits === 0);
   const active = points.filter((p) => p.source !== 'none');
-  const usesEstimates = est.length > 0;
+  const usesEstimates = points.some((p) => p.source === 'estimate');
   const sum = (pts: MonthPoint[], f: (p: MonthPoint) => number | null) =>
     pts.reduce((s, p) => s + (f(p) ?? 0), 0);
 
@@ -134,8 +135,9 @@ export function buildValue(
   const seen = ret.unique + sum(estSplit, (p) => (p.newClients ?? 0) + (p.returningClients ?? 0));
   const retentionRate = V.length || estSplit.length ? ratio(returning, seen) : null;
 
-  const rebooked = V.filter((v) => v.rebooked).length;
-  const rebookRate = V.length ? ratio(rebooked, V.length) : null;
+  const rated = V.filter((v) => !v.estimated);
+  const rebooked = rated.filter((v) => v.rebooked).length;
+  const rebookRate = rated.length ? ratio(rebooked, rated.length) : null;
   const tox = onScheduleReturns(V, catalogs, 'TOX');
   const filler = onScheduleReturns(V, catalogs, 'FILLER');
   const estLabels = est.map((p) => p.label);
@@ -156,8 +158,8 @@ export function buildValue(
       label: 'Rebooked at checkout',
       value: rebookRate,
       display: pct(rebookRate),
-      sub: V.length
-        ? `${rebooked} of ${V.length} visits booked their next one`
+      sub: rated.length
+        ? `${rebooked} of ${rated.length} visits booked their next one`
         : 'Next visit booked before leaving',
       status: status(rebookRate, rebookRate == null ? [] : estLabels, false),
       missing: rebookRate == null ? active.map((p) => p.label) : estLabels,

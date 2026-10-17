@@ -56,6 +56,8 @@ export function retention(V: readonly Visit[]): Retention {
 
 export interface PeriodMetrics {
   n: number;
+  /** Visits with rebook, source and retail recorded (not estimated): the base for those rates. */
+  rated: number;
   serviceCents: Cents;
   retailCents: Cents;
   grossCents: Cents;
@@ -90,11 +92,15 @@ export function computeMetrics(V: readonly Visit[], catalogs: Catalogs): PeriodM
   const retailCents = V.reduce((s, v) => s + v.retailCents, 0);
   const chairDays = new Set(V.map((v) => v.date)).size;
   const ret = retention(V);
-  const rebookedCount = V.filter((v) => v.rebooked).length;
-  const selfSourcedCount = V.filter((v) => v.source === 'SELF_SOURCED').length;
-  const referralCount = V.filter((v) => v.source === 'REFERRAL').length;
+  // Estimated visits (from a booking calendar) count toward volume and billing, but their rebook,
+  // source and retail weren't recorded, so the rates below use only the visits that were.
+  const R = V.filter((v) => !v.estimated);
+  const rated = R.length;
+  const rebookedCount = R.filter((v) => v.rebooked).length;
+  const selfSourcedCount = R.filter((v) => v.source === 'SELF_SOURCED').length;
+  const referralCount = R.filter((v) => v.source === 'REFERRAL').length;
   const independentCount = selfSourcedCount + referralCount;
-  const retailCount = V.filter((v) => v.retailItem != null && v.retailItem !== '').length;
+  const retailCount = R.filter((v) => v.retailItem != null && v.retailItem !== '').length;
   const toxRepeat = V.filter(
     (v) => v.visitType === 'REPEAT' && v.intervalDays != null && areaCategory(catalogs, v.area) === 'TOX',
   );
@@ -108,6 +114,7 @@ export function computeMetrics(V: readonly Visit[], catalogs: Catalogs): PeriodM
 
   return {
     n,
+    rated,
     serviceCents,
     retailCents,
     grossCents: serviceCents + retailCents,
@@ -119,15 +126,15 @@ export function computeMetrics(V: readonly Visit[], catalogs: Catalogs): PeriodM
     newClients: ret.unique - ret.returning,
     retention: ret.rate,
     rebookedCount,
-    rebookRate: ratio(rebookedCount, n),
+    rebookRate: ratio(rebookedCount, rated),
     selfSourcedCount,
     referralCount,
     independentCount,
-    independence: ratio(independentCount, n),
-    selfSourcedShare: ratio(selfSourcedCount, n),
-    referralShare: ratio(referralCount, n),
+    independence: ratio(independentCount, rated),
+    selfSourcedShare: ratio(selfSourcedCount, rated),
+    referralShare: ratio(referralCount, rated),
     retailCount,
-    retailConversion: ratio(retailCount, n),
+    retailConversion: ratio(retailCount, rated),
     toxRepeatCount: toxRepeat.length,
     toxInWindowCount,
     toxCadence: ratio(toxInWindowCount, toxRepeat.length),
@@ -171,6 +178,7 @@ export const TICKET_BENCHMARKS: Record<Category, { lo: Cents; hi: Cents; label: 
   TOX: { lo: 35_000, hi: 50_000, label: '$350–$500' },
   FILLER: { lo: 70_000, hi: 120_000, label: '$700–$1,200+' },
   BIO: null,
+  OTHER: null,
 };
 
 export interface CategoryTicket {
@@ -308,10 +316,12 @@ function emptyBucket(key: string, label: string, start: ISODate, end: ISODate): 
 
 /* ---------- sources, procedure mix, cadence (CH-2, CH-4, CH-5) ---------- */
 
+/** Visits by source. Estimated visits are left out: their source wasn't recorded. */
 export function sourceCounts(V: readonly Visit[]): { source: Source; count: number; share: number | null }[] {
+  const R = V.filter((v) => !v.estimated);
   return SOURCES.map((source) => {
-    const count = V.filter((v) => v.source === source).length;
-    return { source, count, share: ratio(count, V.length) };
+    const count = R.filter((v) => v.source === source).length;
+    return { source, count, share: ratio(count, R.length) };
   });
 }
 

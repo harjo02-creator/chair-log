@@ -7,14 +7,16 @@ export type YearMonth = string;
 
 export type VisitType = 'NEW_CONSULT' | 'REPEAT';
 export type Source = 'CLINIC_LEAD' | 'SELF_SOURCED' | 'REFERRAL';
-export type Unit = 'u' | 'mL' | 'vial' | 'syr';
-export type Category = 'TOX' | 'FILLER' | 'BIO';
+export type Unit = 'u' | 'mL' | 'vial' | 'syr' | 'tx';
+/** OTHER: laser, facials, microneedling, consults and similar services that aren't injectables. */
+export type Category = 'TOX' | 'FILLER' | 'BIO' | 'OTHER';
 export type Theme = 'system' | 'light' | 'dark';
 
 export const VISIT_TYPES: readonly VisitType[] = ['NEW_CONSULT', 'REPEAT'];
 export const SOURCES: readonly Source[] = ['CLINIC_LEAD', 'SELF_SOURCED', 'REFERRAL'];
-export const CATEGORIES: readonly Category[] = ['TOX', 'FILLER', 'BIO'];
-export const UNITS: readonly Unit[] = ['u', 'mL', 'vial', 'syr'];
+export const CATEGORIES: readonly Category[] = ['TOX', 'FILLER', 'BIO', 'OTHER'];
+/** tx: one treatment or session (laser, facial, microneedling). */
+export const UNITS: readonly Unit[] = ['u', 'mL', 'vial', 'syr', 'tx'];
 export const REBOOK_DAY_OPTIONS = [14, 42, 90, 120, 180, 365] as const;
 
 export const VISIT_TYPE_LABEL: Record<VisitType, string> = { NEW_CONSULT: 'New Consult', REPEAT: 'Repeat' };
@@ -27,8 +29,9 @@ export const CATEGORY_LABEL: Record<Category, string> = {
   TOX: 'Tox',
   FILLER: 'Filler',
   BIO: 'Biostimulator',
+  OTHER: 'Other services',
 };
-export const DEFAULT_REBOOK_DAYS: Record<Category, number> = { TOX: 90, FILLER: 180, BIO: 42 };
+export const DEFAULT_REBOOK_DAYS: Record<Category, number> = { TOX: 90, FILLER: 180, BIO: 42, OTHER: 42 };
 
 export interface ProductLine {
   productId: string;
@@ -55,6 +58,12 @@ export interface Visit {
   rebookDays: number | null;
   intervalDays: number | null;
   isSample: boolean;
+  /**
+   * Reconstructed from a booking calendar rather than logged at checkout: products and prices are
+   * estimates, and rebook, source and retail weren't recorded. It counts toward appointments and
+   * billing but is left out of the rebook, source and retail rates. Saving it from the form clears it.
+   */
+  estimated?: boolean;
   createdAt: string;
   updatedAt: string;
   /** Sync bookkeeping: the updatedAt last confirmed by the shared log. Differs from updatedAt = unsynced. */

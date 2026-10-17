@@ -145,9 +145,9 @@ export function DataSection() {
           />
           <span className="hint">
             Columns: Date, Client ID, Visit Type, Source, Primary Treatment Area, Product &amp; Quantity,
-            Retail Add-on, Retail $, Est. Ticket Gross, Rebooked, Treatment Interval (Days). Rows with names
-            or phone numbers are rejected, and so are rows already in the log, so uploading the same file
-            twice is safe.
+            Retail Add-on, Retail $, Est. Ticket Gross, Rebooked, Treatment Interval (Days), and optionally
+            Estimated (Yes for visits rebuilt from a booking calendar). Rows with names or phone numbers are
+            rejected, and so are rows already in the log, so uploading the same file twice is safe.
           </span>
         </div>
         {report && (
